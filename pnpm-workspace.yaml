@@ -1,0 +1,9 @@
+allowBuilds:
+  protobufjs: true
+  sharp: true
+  unrs-resolver: true
+confirmModulesPurge: false
+fetchTimeout: 600000
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
