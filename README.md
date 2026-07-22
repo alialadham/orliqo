@@ -1,8 +1,9 @@
 # Orliqo
 
-Orliqo is a workspace-based AI outreach platform. Phase 1 includes the product
-shell, authentication, workspace roles and permissions, a Supabase schema with
-RLS, synthetic demo data, and a no-send dashboard workflow.
+Orliqo is a workspace-based AI outreach platform. Phases 1 and 2 include the product
+shell, authentication, workspace permissions, resumable business onboarding,
+website context import, ICPs, discovery, and an evidence-backed core CRM with
+CSV/XLSX import. All visible provider workflows remain demo/no-send by default.
 
 ## Requirements
 
@@ -56,6 +57,7 @@ Migrations are in `supabase/migrations`, synthetic fixtures are in
 `supabase/seed.sql`, and pgTAP tenant-isolation coverage is in
 `supabase/tests/tenant_isolation.sql`.
 
-Provider credentials are optional in Phase 1. Leave them blank and retain the
-preview, no-send, fixture, sandbox, and test-mode defaults in `.env.example`.
-No deployment or production credential setup is part of this phase.
+AI provider credentials are optional. Leave them blank to use the deterministic
+mock fallback. See `docs/AI_PROVIDERS.md`, `docs/ONBOARDING.md`, and
+`docs/LEAD_IMPORT.md`. No deployment or production credential setup is part of this
+work.

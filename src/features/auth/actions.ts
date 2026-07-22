@@ -183,4 +183,5 @@ export async function switchWorkspaceAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/app", "layout");
+  redirect("/app/dashboard");
 }

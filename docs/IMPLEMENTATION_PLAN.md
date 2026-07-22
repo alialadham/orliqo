@@ -252,7 +252,7 @@ Exit workflow:
 
 ## Current Execution Boundary
 
-The current task begins Phase 1 only. Later phases remain planned and unchecked until
-their Phase 1 dependencies and mandatory gate are complete. Provider integrations in
-Phase 1 are interfaces, environment schemas, and deterministic simulators only; no
-real provider credential or production network action is authorized.
+Phase 2 is complete locally and its application quality gate has passed. Phase 3
+has not started. All provider credentials remain blank and every
+outreach surface is demo, preview, or manual-only. No deployment, push, or production
+operation is authorized.

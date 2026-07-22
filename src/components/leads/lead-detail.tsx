@@ -1,0 +1,88 @@
+"use client";
+
+import { useState } from "react";
+import { ArrowLeft, CheckCircle2, Clipboard, ExternalLink, FileText, Loader2, Mail, MessageSquareText, MoreHorizontal, RefreshCw, ShieldOff, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { LeadEditor } from "@/components/leads/lead-editor";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { addLeadNoteAction, recalculateLeadAction, restoreLeadAction, suppressLeadAction, updateLeadNoteAction, verifyEvidenceAction } from "@/features/leads/actions";
+import type { LeadDetailData } from "@/features/leads/types";
+import { cn } from "@/lib/utils";
+
+const tabs = ["Overview", "Outreach", "Activity", "Notes"] as const;
+type Tab = (typeof tabs)[number];
+
+function confidenceTone(confidence: string) {
+  if (confidence === "verified") return "border-success/30 bg-success/10 text-success";
+  if (confidence === "likely") return "border-primary/30 bg-primary/10 text-primary";
+  return "bg-muted text-muted-foreground";
+}
+
+export function LeadDetail({ data, canUpdate, canRestore, teammates, currentUserId, canManageAllNotes }: { data: LeadDetailData; canUpdate: boolean; canRestore: boolean; teammates: Array<{ id: string; name: string }>; currentUserId: string; canManageAllNotes: boolean }) {
+  const [tab, setTab] = useState<Tab>("Overview");
+  const [editing, setEditing] = useState(false);
+  const [note, setNote] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  const lead = data.lead;
+
+  async function addNote() {
+    setBusy(true); const result = await addLeadNoteAction(lead.id, note); setBusy(false); setMessage(result.message);
+    if (result.ok) { setNote(""); router.refresh(); }
+  }
+  async function suppress() {
+    const reason = window.prompt("Suppression reason", "Opted out"); if (!reason) return;
+    setBusy(true); const result = await suppressLeadAction(lead.id, reason); setBusy(false); setMessage(result.message); if (result.ok) router.refresh();
+  }
+  async function restore() {
+    if (!window.confirm("Restore this lead and remove active suppression entries?")) return;
+    setBusy(true); const result = await restoreLeadAction(lead.id); setBusy(false); setMessage(result.message); if (result.ok) router.refresh();
+  }
+
+  return <div className="mx-auto max-w-[1400px] space-y-5">
+    <Link href="/app/leads" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Back to leads</Link>
+    <header className="flex flex-col justify-between gap-5 rounded-xl border bg-card p-5 surface-shadow md:flex-row md:items-start md:p-6"><div className="flex min-w-0 items-start gap-4"><div className="grid size-12 shrink-0 place-items-center rounded-xl bg-shell text-lg font-bold text-white">{lead.businessName.slice(0, 2).toUpperCase()}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="truncate text-2xl font-bold sm:text-3xl">{lead.businessName}</h1><Badge variant="outline" className={cn("text-sm", lead.qualificationScore >= 80 ? "border-success/30 bg-success/10 text-success" : "border-primary/30 bg-primary/10 text-primary")}>{lead.qualificationScore}/100</Badge>{lead.doNotContact ? <Badge variant="destructive"><ShieldOff />Do not contact</Badge> : null}</div><p className="mt-1 text-sm text-muted-foreground">{[lead.industry, lead.city, lead.country].filter(Boolean).join(" · ")}</p><div className="mt-3 flex flex-wrap gap-1.5">{lead.tags.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div></div></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled title="Campaign builder arrives in Phase 3">Add to campaign</Button><Button variant="outline" disabled={!lead.email && !lead.phone}><Mail />Contact</Button>{canUpdate ? <Button onClick={() => setEditing(true)}>Edit</Button> : null}<Button variant="ghost" size="icon"><MoreHorizontal /><span className="sr-only">More actions</span></Button></div></header>
+    {message ? <div className="rounded-lg border bg-card px-4 py-3 text-sm" role="status">{message}</div> : null}
+    <div className="border-b"><nav className="flex gap-1 overflow-x-auto" aria-label="Lead detail sections">{tabs.map((item) => <button key={item} onClick={() => setTab(item)} className={cn("border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground", tab === item && "border-primary text-foreground")}>{item}</button>)}</nav></div>
+    {tab === "Overview" ? <Overview data={data} canUpdate={canUpdate} busy={busy} setBusy={setBusy} setMessage={setMessage} onSuppress={suppress} canRestore={canRestore} onRestore={restore} /> : null}
+    {tab === "Outreach" ? <Outreach lead={lead} /> : null}
+    {tab === "Activity" ? <Activity data={data} /> : null}
+    {tab === "Notes" ? <Notes data={data} canUpdate={canUpdate} note={note} setNote={setNote} busy={busy} onAdd={addNote} currentUserId={currentUserId} canManageAll={canManageAllNotes} setMessage={setMessage} /> : null}
+    {editing ? <LeadEditor lead={lead} teammates={teammates} onClose={() => setEditing(false)} /> : null}
+  </div>;
+}
+
+function Overview({ data, canUpdate, busy, setBusy, setMessage, onSuppress, canRestore, onRestore }: { data: LeadDetailData; canUpdate: boolean; busy: boolean; setBusy: (value: boolean) => void; setMessage: (value: string) => void; onSuppress: () => void; canRestore: boolean; onRestore: () => void }) {
+  const lead = data.lead;
+  const router = useRouter();
+  async function recalculate() { setBusy(true); const result = await recalculateLeadAction(lead.id); setBusy(false); setMessage(result.message); if (result.ok) router.refresh(); }
+  async function verify(evidenceId: string) { setBusy(true); const result = await verifyEvidenceAction(lead.id, evidenceId); setBusy(false); setMessage(result.message); if (result.ok) router.refresh(); }
+  const components = [
+    ["ICP match", data.score.icpFit], ["Location", data.score.locationFit], ["Industry", data.score.industryFit], ["Website opportunity", data.score.websiteOpportunity], ["Social activity", data.score.socialActivity], ["Reviews", data.score.reviews], ["Contact availability", data.score.contactAvailability], ["Verification", data.score.verification], ["Business size", data.score.sizeFit], ["Buying signals", data.score.buyingSignals], ["Exclusion penalty", data.score.exclusionPenalty], ["Data confidence", data.score.confidence],
+  ] as const;
+  return <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,1fr)]"><div className="space-y-4"><Section title="Qualification summary"><p className="text-sm leading-6 text-muted-foreground">{lead.qualificationReason || data.score.explanation}</p>{lead.suggestedOpportunity ? <div className="mt-4 rounded-lg border border-primary/20 bg-primary/[0.035] p-4"><p className="text-xs font-semibold uppercase tracking-wide text-primary">Suggested opportunity</p><p className="mt-1 text-sm">{lead.suggestedOpportunity}</p></div> : null}</Section>
+    <Section title="Business overview"><dl className="grid gap-4 text-sm sm:grid-cols-2"><Info label="Website condition" value={lead.websiteStatus.replaceAll("_", " ")} confidence={lead.websiteConfidence} /><Info label="Industry" value={lead.industry} evidence={data.evidence.find((item) => item.fieldName === "industry")} /><Info label="Email" value={lead.email} confidence={lead.emailVerification === "verified" ? "verified" : lead.email ? "unverified" : "missing"} /><Info label="Phone" value={lead.phone} confidence={lead.phoneVerification === "verified" ? "verified" : lead.phone ? "unverified" : "missing"} /><Info label="Reviews" value={lead.reviewCount === null ? "Missing" : `${lead.reviewCount} reviews · ${lead.averageRating ?? "—"}/5`} /><Info label="Recommended channel" value={lead.recommendedChannel.replaceAll("_", " ")} /></dl><p className="mt-5 text-sm leading-6 text-muted-foreground">{lead.description || "No business description has been recorded."}</p></Section>
+    <Section title="Research sources"><div className="divide-y rounded-lg border">{data.sources.length ? data.sources.map((source) => <div key={source.id} className="p-3"><div className="flex flex-wrap items-center gap-2"><a href={source.url} target="_blank" rel="noreferrer" className="font-medium hover:text-primary">{source.title}<ExternalLink className="ml-1 inline size-3" /></a><Badge variant="outline" className={confidenceTone(source.confidence)}>{source.confidence}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{source.domain} · retrieved {new Date(source.retrievedAt).toLocaleString()}</p><p className="mt-1 text-sm text-muted-foreground">{source.citation}</p></div>) : <p className="p-4 text-sm text-muted-foreground">No source has been stored. Fields cannot be marked verified without evidence.</p>}</div><h3 className="mt-5 text-sm font-semibold">Field evidence</h3><div className="mt-2 divide-y rounded-lg border">{data.evidence.map((item) => <div key={item.id} className="flex flex-col justify-between gap-3 p-3 sm:flex-row sm:items-center"><div><p className="text-sm font-medium capitalize">{item.fieldName.replace(/([A-Z])/g, " $1")}: {item.value}</p><p className="mt-1 text-xs text-muted-foreground">{item.verificationMethod || "No verification method"} · {item.sourceId ? "Stored source linked" : "No source linked"}</p></div><div className="flex items-center gap-2"><Badge variant="outline" className={confidenceTone(item.confidence)}>{item.confidence}</Badge>{canUpdate && item.sourceId && item.confidence !== "verified" ? <Button size="sm" variant="outline" disabled={busy} onClick={() => verify(item.id)}>Mark verified</Button> : null}</div></div>)}</div></Section></div>
+    <div className="space-y-4"><Section title="Score breakdown" action={<Button size="sm" variant="outline" disabled={!canUpdate || busy} onClick={recalculate}><RefreshCw />Recalculate</Button>}><div className="flex items-end justify-between"><div><span className="text-4xl font-bold tabular-nums">{data.score.total}</span><span className="text-muted-foreground"> / 100</span></div><Badge variant="outline" className="capitalize">{data.score.dataConfidence} confidence</Badge></div><div className="mt-5 space-y-2">{components.map(([name, value]) => <div key={name} className="flex items-center justify-between text-sm"><span className="text-muted-foreground">{name}</span><span className={cn("font-medium tabular-nums", value < 0 && "text-destructive")}>{value > 0 ? "+" : ""}{value}</span></div>)}</div><p className="mt-4 border-t pt-4 text-xs leading-5 text-muted-foreground">{data.score.explanation} Rule {data.score.ruleVersion}.</p></Section>
+      <Section title="Contact safety"><p className="text-sm text-muted-foreground">{lead.doNotContact ? lead.doNotContactReason : "No active suppression is recorded for this lead."}</p><div className="mt-4">{lead.doNotContact ? <Button variant="outline" disabled={!canRestore || busy} onClick={onRestore}>{busy ? <Loader2 className="animate-spin" /> : null}Restore lead</Button> : <Button variant="destructive" disabled={!canUpdate || busy} onClick={onSuppress}><ShieldOff />Mark do not contact</Button>}</div></Section>
+    </div></div>;
+}
+
+function Info({ label, value, confidence, evidence }: { label: string; value: string; confidence?: string; evidence?: LeadDetailData["evidence"][number] }) { const state = evidence?.confidence ?? confidence ?? "missing"; return <div><dt className="text-xs font-medium text-muted-foreground">{label}</dt><dd className="mt-1 font-medium capitalize">{value || "Missing"}</dd><Badge variant="outline" title={evidence ? `${evidence.verificationMethod}: ${evidence.value}` : "No stored evidence"} className={cn("mt-1 capitalize", confidenceTone(state))}>{state}</Badge></div>; }
+function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) { return <section className="rounded-xl border bg-card p-5 surface-shadow"><div className="mb-4 flex items-center justify-between gap-3"><h2 className="font-bold">{title}</h2>{action}</div>{children}</section>; }
+
+function Outreach({ lead }: { lead: LeadDetailData["lead"] }) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const channels = [["Email", Mail], ["WhatsApp", MessageSquareText], ["Instagram", Sparkles], ["LinkedIn", FileText], ["Follow-up 1", RefreshCw], ["Follow-up 2", RefreshCw]] as const;
+  function generate(channel: string) { setDrafts((current) => ({ ...current, [channel]: `Hi ${lead.businessName} team — I noticed ${lead.suggestedOpportunity.toLowerCase() || "an opportunity worth discussing"}. Would it be useful if I shared a concise concept?` })); }
+  return <div><div className="mb-4 rounded-lg border border-primary/25 bg-primary/[0.035] p-4 text-sm"><strong>Draft-only workspace.</strong> Phase 2 never sends or queues these messages.</div><div className="grid gap-4 md:grid-cols-2">{channels.map(([channel, Icon]) => <section key={channel} className="rounded-xl border bg-card p-5"><div className="flex items-center gap-2"><Icon className="size-4 text-primary" /><h2 className="font-semibold">{channel}</h2></div>{drafts[channel] ? <Textarea className="mt-4 min-h-32" value={drafts[channel]} onChange={(event) => setDrafts((current) => ({ ...current, [channel]: event.target.value }))} /> : <p className="mt-3 text-sm text-muted-foreground">Generate a grounded demo draft from the stored lead context. Nothing will be sent.</p>}<div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant={drafts[channel] ? "outline" : "default"} onClick={() => generate(channel)}>{drafts[channel] ? "Regenerate" : "Generate draft"}</Button>{drafts[channel] ? <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(drafts[channel] ?? "")}><Clipboard />Copy</Button> : null}<Button size="sm" variant="ghost" disabled>Approve for later</Button></div></section>)}</div></div>;
+}
+
+function Activity({ data }: { data: LeadDetailData }) { return <Section title="Activity timeline"><ol className="relative ml-2 border-l">{data.activities.length ? data.activities.map((item) => <li key={item.id} className="relative ml-5 pb-6 last:pb-0"><span className="absolute top-1 -left-[27px] size-3 rounded-full border-2 border-card bg-primary" /><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-medium">{item.summary}</p><time className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</time></div><p className="mt-1 text-xs text-muted-foreground">{item.actorName} · {item.eventType}</p></li>) : <li className="ml-5 text-sm text-muted-foreground">No activity recorded.</li>}</ol></Section>; }
+
+function Notes({ data, canUpdate, note, setNote, busy, onAdd, currentUserId, canManageAll, setMessage }: { data: LeadDetailData; canUpdate: boolean; note: string; setNote: (value: string) => void; busy: boolean; onAdd: () => void; currentUserId: string; canManageAll: boolean; setMessage: (value: string) => void }) { const router = useRouter(); async function mutate(noteId: string, operation: "pin" | "delete" | "edit", current: string) { const content = operation === "edit" ? window.prompt("Edit note", current) ?? undefined : undefined; if (operation === "edit" && content === undefined) return; const result = await updateLeadNoteAction(data.lead.id, noteId, operation, content); setMessage(result.message); if (result.ok) router.refresh(); } return <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"><Section title="Workspace notes"><div className="space-y-3">{data.notes.length ? data.notes.map((item) => <article key={item.id} className="rounded-lg border p-4"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">{item.authorName}</p>{item.pinned ? <Badge variant="outline">Pinned</Badge> : null}</div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.content}</p><div className="mt-3 flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString()}</p>{canUpdate && (item.authorId === currentUserId || canManageAll) ? <div className="flex gap-1"><Button size="xs" variant="ghost" onClick={() => mutate(item.id, "pin", item.content)}>{item.pinned ? "Unpin" : "Pin"}</Button><Button size="xs" variant="ghost" onClick={() => mutate(item.id, "edit", item.content)}>Edit</Button><Button size="xs" variant="destructive" onClick={() => mutate(item.id, "delete", item.content)}>Delete</Button></div> : null}</div></article>) : <p className="text-sm text-muted-foreground">No notes yet.</p>}</div></Section><Section title="Add note"><Textarea data-testid="lead-note" className="min-h-36" disabled={!canUpdate} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add research context, a handoff, or a follow-up reminder…" /><Button data-testid="add-note" className="mt-3" disabled={!canUpdate || busy || !note.trim()} onClick={onAdd}>{busy ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}Add note</Button></Section></div>; }

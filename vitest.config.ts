@@ -8,11 +8,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "server-only": path.resolve(__dirname, "./vitest.setup.ts"),
     },
   },
   test: {
     environment: "jsdom",
+    fileParallelism: false,
     globals: true,
+    maxWorkers: 1,
+    pool: "threads",
     setupFiles: ["./vitest.setup.ts"],
     exclude: ["node_modules", ".next", "tests/e2e"],
     coverage: {

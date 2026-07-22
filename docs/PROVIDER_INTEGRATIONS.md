@@ -149,6 +149,7 @@ Requirements:
 Named functions:
 
 ```text
+phase2-import-website,
 researchCampaign, enrichLead, verifyLead, scoreLead,
 generateLeadMessages, scheduleCampaign, dispatchDueMessages,
 sendEmailMessage, sendWhatsAppMessage, syncEmailReplies,
@@ -156,6 +157,10 @@ processWhatsAppWebhook, classifyReply, generateReplySuggestion,
 replenishCampaign, aggregateAnalytics, resetDailyUsage,
 refreshProviderTokens, reconcileProviderStatuses
 ```
+
+Phase 2 implements `phase2-import-website` with a typed, Zod-validated event,
+workspace concurrency limits, retries, job progress, terminal failure recording,
+and IP-pinned SSRF-safe fetching. The remaining named functions are phase-scoped.
 
 Environment:
 
@@ -446,3 +451,12 @@ A provider can move to `connected` only when all are true:
 
 Until that gate passes, the UI shows `Demo`, `Test`, `Disconnected`, `Expired`, or
 `Error`, never `Connected`.
+
+## Phase 2 AI extraction
+
+Gemini, Groq, OpenRouter, and mock adapters implement the Phase 2 structured
+business-extraction contract. The configured primary/fallback order is server-only;
+requests use timeouts and bounded retries for rate limits/server errors, output is
+validated before use, and website-import history records provider, model, prompt
+version, usage metadata, source URL, and retrieval time. With blank keys, only the
+deterministic mock provider is ready.

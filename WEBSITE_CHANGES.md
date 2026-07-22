@@ -1,5 +1,47 @@
 # Website Changes
 
+## 2026-07-21 - Phase 2: Onboarding, Business Context, and Lead Intelligence
+
+### Files Changed
+
+- `src/app/onboarding`, `src/app/app/leads`, `src/app/app/discovery`, and workspace settings
+- `src/app/api/imports` and `src/app/api/workspace`
+- `src/components/onboarding` and `src/components/leads`
+- `src/features/ai`, `src/features/onboarding`, `src/features/leads`, `src/features/imports`, and security helpers
+- `supabase/migrations/20260717232822_phase2_business_context_and_lead_intelligence.sql`
+- `supabase/seed.sql`, tests, environment example, and Phase 2 documentation
+
+### What Changed
+
+- Added resumable six-step onboarding, business/offer/ICP/channel/goal settings,
+  private logo handling, and review/draft/completion flows.
+- Added a durable Inngest website-import job with status polling, cited suggestions,
+  IP-pinned SSRF protection, and typed Gemini/Groq/OpenRouter/grounded mock fallbacks.
+- Added discovery, a responsive lead CRM, evidence and source review, deterministic
+  scoring, notes/activity, saved views, assignment/tags, suppression/restore, and
+  CSV/XLSX staging with duplicate and suppression checks.
+- Expanded deterministic demo data to 30+ synthetic leads and added Phase 2 schema,
+  grants, policies, indexes, audit behavior, and security tests.
+
+### Verification
+
+- `pnpm lint` - passed with zero errors.
+- `pnpm typecheck` - passed with zero errors.
+- `pnpm test` - 16 files and 52 tests passed.
+- `pnpm test:e2e` - 11 passed and 5 intentionally project-specific tests skipped.
+- Disposable local demo secret + `pnpm build` - passed; 24 route targets generated.
+- Visible 1440px/1024px/390px QA passed. The 1024px audit found and fixed lead
+  table/filter overflow; the final screenshot and browser diagnostics show every
+  filter visible, no page overflow, and zero console errors/warnings.
+
+### Notes
+
+- Hosted Supabase is not connected. Local migration execution and pgTAP remain
+  blocked until a Docker-compatible runtime is available.
+- Live AI provider keys remain unset; deterministic fallback is active.
+- Campaign generation, approval, queueing, scheduling, and sending remain Phase 3.
+- No deployment, Git push, production credentials, or external sends were used.
+
 ## 2026-07-18 00:40 - Website Update
 
 ### Files Changed
@@ -93,3 +135,14 @@
 - Ownership-transfer confirmation UI remains deferred to the settings phase.
 - No deployment, Git push, production credentials, or external sends were used.
 - Missing assets: None.
+# Phase 3 — Campaigns and safe outreach (2026-07-22)
+
+- Added campaign list/detail, six-step builder, templates, and outreach queue routes.
+- Added grounded deterministic message generation, source validation, versioning, transforms, approval, scheduling, pause/resume/kill, suppression, idempotency, usage reservations, and no-send dispatch simulation.
+- Registered all 18 Phase 3 Inngest jobs and added private atomic queue/stop/usage database functions.
+- Added Phase 3 unit, integration, and Playwright coverage. Gate passed: lint,
+  typecheck, 19 files/60 tests, 14 passed + 8 intentionally scoped Playwright
+  skips across 22 cases, 28-route build, and visible 1440/1024/390 browser QA.
+- Fixed request-bound demo authentication in Route Handlers by verifying the signed
+  demo cookie from each incoming request, preventing cross-request cookie-context
+  failures in the accumulated Phase 2 import regression suite.

@@ -109,7 +109,8 @@ and partial-success states are reusable domain surfaces rather than generic erro
 | `GET /api/health` | Version, environment, database reachability, queue lag summary; no secrets |
 | `GET /api/search` | Workspace-scoped campaigns, leads, conversations, templates, and notes |
 | `POST /api/imports/csv` | Validate upload metadata and start durable import |
-| `POST /api/imports/website` | SSRF-safe URL validation and durable website import |
+| `POST /api/imports/website` | Validate a public URL, create durable job/import records, and enqueue extraction |
+| `GET /api/imports/website?importId=…` | Permissioned status polling and pending review suggestions |
 | `GET /api/imports/[importId]` | Workspace-scoped progress and partial failures |
 | `GET /api/exports/leads` | Permissioned, audited, streamed CSV export |
 | `POST /api/compliance/export` | Start workspace data export |
@@ -197,6 +198,22 @@ src/
 Each feature owns schemas, queries, mutations, permissions, components, tests, and
 provider mapping for its domain. Shared helpers must have one clear responsibility;
 there is no catch-all `utils.ts`.
+
+## Implemented Phase 2 routes
+
+| Route | State |
+| --- | --- |
+| `/onboarding` | Resumable six-step business setup |
+| `/app/settings/workspace` | Editable business/offer/ICP/channel/goal profile and import history |
+| `/app/leads` | Search, URL filters, saved views, responsive list/table, bulk actions, export |
+| `/app/leads/import` | CSV/XLSX mapping, preview, confirmation, and summary |
+| `/app/leads/[leadId]` | Overview, draft-only outreach, activity, notes, evidence, score, suppression |
+| `/app/discovery` | Deterministic demo discovery over evidence-backed records |
+| `POST /api/imports/website` | Permissioned, rate-limited enqueue; demo mode remains deterministic and no-network |
+| `GET /api/imports/website?importId=…` | Workspace-scoped website import status and review payload |
+| `GET|POST|PUT /api/inngest` | Registered durable Phase 2 website import function |
+| `POST|PUT /api/imports/leads` | Preview/stage and confirm a resumable lead import |
+| `POST|DELETE /api/workspace/logo` | Validated private logo upload/removal |
 
 ## Navigation and Search
 

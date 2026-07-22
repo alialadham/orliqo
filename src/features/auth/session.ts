@@ -1,7 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
-
 import { readDemoSession } from "@/features/auth/demo-session";
 import { getServerEnvironment } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -14,7 +12,7 @@ export type CurrentUser = {
   demoKind?: "workspace" | "onboarding";
 };
 
-export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   const environment = getServerEnvironment();
 
   if (environment.demoMode) {
@@ -43,4 +41,4 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     provider: "supabase",
     fullName: typeof data.user.user_metadata.full_name === "string" ? data.user.user_metadata.full_name : undefined,
   };
-});
+}

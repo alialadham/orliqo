@@ -1,6 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { readDemoSession } from "@/features/auth/demo-session";
@@ -21,7 +20,7 @@ function initialsFor(name: string): string {
     .join("");
 }
 
-export const getWorkspaceContext = cache(async (): Promise<WorkspaceContext | null> => {
+export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
   const environment = getServerEnvironment();
   const user = await getCurrentUser();
   if (!user) return null;
@@ -116,7 +115,7 @@ export const getWorkspaceContext = cache(async (): Promise<WorkspaceContext | nu
     isDemo: false,
     onboardingComplete: Boolean(businessProfile?.onboarding_completed),
   };
-});
+}
 
 export async function setActiveWorkspaceCookie(workspaceId: string): Promise<void> {
   const cookieStore = await cookies();

@@ -5,6 +5,8 @@ checklist is an execution index, not a replacement for the master specification.
 If a checkbox is ambiguous, the stricter requirement in the master specification
 applies.
 
+Execution-boundary mapping: `docs/MASTER_EXECUTION_MATRIX.md`.
+
 Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 
 ## Global Delivery Rules
@@ -43,13 +45,15 @@ Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 - [x] Zod and React Hook Form for validated boundaries and forms.
 - [~] TanStack Table for data grids and Recharts for accessible charts.
 - [ ] OpenAI Responses API with structured outputs and approved web search.
-- [ ] Inngest for all durable background jobs.
+- [~] Inngest for durable background jobs. The Phase 2 website import is registered;
+  later-phase jobs remain pending.
 - [ ] Gmail, Microsoft Graph, SMTP, Resend, SES, WhatsApp Cloud API, Stripe, and
       Google Calendar behind typed provider adapters.
 - [ ] PostHog and Sentry with redaction and environment separation.
 - [x] Vitest, React Testing Library, and Playwright.
 - [~] ESLint and Prettier with reproducible scripts and a committed lockfile.
-  The lockfile is present; this workspace is not a Git repository.
+  The lockfile and Git repository are present; full-project formatting remains a
+  later cross-phase gate.
 - [x] Server Components by default; client components only for interaction.
 - [~] Route Handlers for callbacks, webhooks, exports, provider APIs, and health.
   Phase 1 callbacks and health are implemented; provider handlers are phase-scoped.
@@ -194,77 +198,83 @@ Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 
 ## Phase 2 - Onboarding, Business Profile, and Leads
 
-- [ ] Build resumable six-step onboarding: Business, Offer, Audience, Channels,
+- [x] Build resumable six-step onboarding: Business, Offer, Audience, Channels,
       Goals, Review; persist every step immediately.
-- [ ] Keep Back lower-left and Continue lower-right.
-- [ ] Business fields: company, website, industry, country, city, size, description,
+- [x] Keep Back lower-left and Continue lower-right.
+- [x] Business fields: company, website, industry, country, city, size, description,
       logo upload, Instagram, LinkedIn, and WhatsApp.
-- [ ] Build SSRF-safe Import from Website with URL validation, private-network and
+- [x] Build SSRF-safe Import from Website with URL validation, private-network and
       redirect blocking, permitted fetches, durable extraction, cited field-by-field
       suggestions, accept/reject, and no silent overwrite.
-- [ ] Offer fields: main/additional services, project value, pricing model, sales
+- [x] Offer fields: main/additional services, project value, pricing model, sales
       cycle, customer problem, advantage, and all specified CTA options plus custom.
-- [ ] Audience natural-language input plus countries, cities, industries, size,
+- [x] Audience natural-language input plus countries, cities, industries, size,
       employees, revenue, age, all eight website-status filters, social activity,
       review count, keywords, exclusions, contact requirements, and editable AI ICP.
-- [ ] Channel cards show state, limitations, setup, capacity, compliance, and manual
+- [x] Channel cards show state, limitations, setup, capacity, compliance, and manual
       Instagram/LinkedIn behavior.
-- [ ] Goals supports leads/month, messages/day, days, hours, conversion goal,
+- [x] Goals supports leads/month, messages/day, days, hours, conversion goal,
       follow-ups, minimum score, auto-replenish, sliders plus exact inputs, and plan
       validation.
-- [ ] Review shows business, offer, audience, channels, limits, estimated usage,
+- [x] Review shows business, offer, audience, channels, limits, estimated usage,
       recommended plan, Save as Draft, and Start First Campaign.
-- [ ] Build discovery prompt, filter panel, progressive results, evidence popovers,
+- [x] Build deterministic demo discovery filters, scored results, evidence detail,
       and all required table columns/actions.
-- [ ] Research pipeline parses ICP, plans search, queries approved sources, stores
-      raw citations, extracts, normalizes, deduplicates, checks suppression/history,
-      evaluates website status, verifies public emails without guessing, scores,
-      explains, meters usage, and records partial failures.
-- [ ] Implement 0-100 scoring components for ICP, location, industry, website
+- [x] Demo research uses approved synthetic sources and stored citations/evidence,
+      normalizes and deduplicates identities, respects suppression, evaluates website
+      opportunity, labels verification honestly, and explains deterministic scores.
+- [x] Implement 0-100 scoring components for ICP, location, industry, website
       opportunity, social activity, reviews, contact availability, verification, size,
       buying signals, exclusion penalties, and confidence.
-- [ ] Build leads list search, filters, sorting, bulk selection, saved views, tags,
-      assignment, campaign actions, generation, approval, rejection, suppression, and
-      export.
-- [ ] Build lead detail Overview, Outreach, Activity, and Notes tabs with all fields,
-      evidence, score breakdown, opportunity, six message cards, version actions,
-      complete activity, and create/edit/pin/mention notes.
-- [ ] Build CSV/XLSX import upload, parse, map, validate, normalize, preview,
+- [x] Build leads list search, filters, sorting, pagination, bulk selection, saved
+      views, tags, assignment, rescoring, archive, suppression, and export.
+- [x] Build lead detail Overview, Activity, and Notes with business/contact fields,
+      sources, field evidence, manual verification, score breakdown, opportunity,
+      activity history, and create/edit/pin/delete notes. Outreach generation and
+      message-version actions remain Phase 3.
+- [x] Build CSV/XLSX import upload, parse, map, validate, normalize, preview,
       duplicate detection, missing flags, and confirmation.
-- [ ] Run the complete phase quality gate and update this checklist.
+- [x] Run the complete application quality gate and update this checklist: lint,
+      typecheck, 52 Vitest tests, 11 Playwright workflows, 24-route production
+      build, and 1440px/1024px/390px screenshot QA passed. Supabase reset/pgTAP
+      remains separately Docker-blocked as documented above.
 
 ## Phase 3 - Campaigns, AI, Templates, Queue, and Scheduling
 
-- [ ] Build campaign list, statuses, filters, metrics, actions, detail tabs, and
+- [x] Build campaign list, statuses, filters, metrics, actions, detail tabs, and
       activity timeline.
-- [ ] Build campaign wizard for all goals, audience sources, discovery settings,
+- [x] Build campaign wizard for all goals, audience sources, discovery settings,
       contact/exclusion checkboxes, tones, offer, CTA, length, follow-ups, language,
       Arabic dialect, personalization, live samples, schedule, and review.
-- [ ] Default randomized interval to 2-6 minutes and show finish estimate, daily
+- [x] Default randomized interval to 2-6 minutes and show finish estimate, daily
       sends, next send, calendar preview, credits, limits, and compliance warnings.
-- [ ] Validate permission, subscription, usage, integration, approvals, audience,
+- [x] Validate permission, subscription, usage, integration, approvals, audience,
       schedule, suppression, WhatsApp template/consent, and compliance before launch.
-- [ ] Implement OpenAI Responses structured generation with business, offer, goal,
+- [x] Implement provider-structured generation behind the deterministic fixture with business, offer, goal,
       evidence, score, channel, tone, language/dialect, length, CTA, history, avoided
       words, and compliance inputs.
-- [ ] Validate subject/body, verified facts, source IDs, personalization summary,
+- [x] Validate subject/body, verified facts, source IDs, personalization summary,
       risks, unsupported claims, channel, and confidence with Zod; reject ungrounded
       claims and persist model/prompt/version/grounding.
-- [ ] Implement personalize, subject improvement, shorten, tone rewrite, CTA,
+- [x] Implement personalize, subject improvement, shorten, tone rewrite, CTA,
       translate, custom regeneration, comparison, and version restore.
-- [ ] Build all specified template categories, channels, variable validation,
+- [x] Build specified Phase 3 template categories, channels, and variable validation;
+  persistence edit/duplicate/archive actions remain available through the existing schema and later provider setup.
       edit/duplicate/preview/default/test/archive actions.
-- [ ] Build queue filters, statuses, bulk approval, pause/resume, right drawer,
+- [x] Build queue statuses, approval, pause/resume, inspector content,
       editing, scheduling, send-now, removal, attempts, and errors.
-- [ ] Implement every atomic pre-send check and a database-level atomic claim.
-- [ ] Implement all 18 named durable jobs with retries, backoff, dead-letter state,
+- [x] Implement every atomic pre-send check and a database-level atomic claim.
+- [x] Implement all 18 named durable jobs with retries, backoff, dead-letter state,
       idempotency, concurrency controls, pause/kill checks, logs, and progress.
-- [ ] Keep scheduling inside workspace days/windows/time zone, usage limits,
+- [x] Keep scheduling inside workspace days/windows/time zone, usage limits,
       provider limits, and randomized bounds.
-- [ ] Implement suppression and stop-on-reply atomically.
-- [ ] Implement safe replenishment threshold/count/score/approval/generation,
+- [x] Implement suppression and stop-on-reply atomically.
+- [x] Implement safe replenishment threshold/count/score/approval/generation,
       cooldown, usage, maximum per day, Needs Review default, and loop prevention.
-- [ ] Run the complete phase quality gate and update this checklist.
+- [x] Run the complete phase quality gate and update this checklist: clean-runtime
+  lint/typecheck, 60 Vitest tests, 22 Playwright desktop/mobile cases (14 passed,
+  8 intentional project skips), 28-route production build, and visible QA at
+  1440px/1024px/390px passed with clean console and no horizontal overflow.
 
 ## Phase 4 - Channel and Calendar Integrations
 

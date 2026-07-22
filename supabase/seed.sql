@@ -69,6 +69,10 @@ set
   description = 'Synthetic Orliqo demonstration workspace.',
   main_service = 'Evidence-backed website audits',
   competitive_advantage = 'Approval-first outreach with source evidence.',
+  currency = 'USD',
+  default_cta = 'book_call',
+  channel_preferences = '{"email":{"enabled":true,"state":"demo"},"manual_call":{"enabled":true,"state":"demo"}}'::jsonb,
+  campaign_defaults = '{"leadsPerMonth":250,"messagesPerDay":35,"sendingDays":[1,2,3,4,5],"startTime":"09:00","endTime":"16:00","conversionGoal":"Book qualified meetings","followUpCount":2,"minimumScore":65,"autoReplenish":false,"timezone":"Asia/Amman"}'::jsonb,
   onboarding_completed = true,
   onboarding_step = 6,
   updated_at = now()
@@ -135,6 +139,25 @@ values (
   'Independent photography and creative studios in Jordan with an outdated or slow website.',
   array['Jordan'], array['Amman', 'Aqaba', 'Zarqa'], array['Photography', 'Creative services'],
   array['1-10', '11-50'], array['outdated', 'slow', 'poor_mobile']::public.website_status[], 68, true
+)
+on conflict (id) do nothing;
+
+update public.ideal_customer_profiles
+set summary = natural_language_description, is_default = true, audience_breadth = 'balanced'
+where id = '21000000-0000-4000-8000-000000000001';
+
+insert into public.ideal_customer_profiles (
+  id, workspace_id, name, natural_language_description, summary, countries, cities,
+  industries, company_sizes, website_statuses, minimum_score, active, is_default, audience_breadth
+)
+values (
+  '21000000-0000-4000-8000-000000000002',
+  '10000000-0000-4000-8000-000000000001',
+  'Levant professional services',
+  'Professional service businesses in Jordan and Lebanon with a visible conversion opportunity.',
+  'Levant professional services with public evidence and a website conversion opportunity.',
+  array['Jordan', 'Lebanon'], array['Amman', 'Beirut'], array['Professional services'],
+  array['2-10', '11-50'], array['outdated', 'no_booking']::public.website_status[], 70, true, false, 'narrow'
 )
 on conflict (id) do nothing;
 
@@ -244,6 +267,45 @@ values
   ('22000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'High fit', 'green'),
   ('22000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'Needs review', 'amber')
 on conflict (id) do nothing;
+
+insert into public.lead_tags (workspace_id, lead_id, tag_id, created_by)
+select '10000000-0000-4000-8000-000000000001', lead.id,
+  case when right(lead.id::text, 1)::integer % 2 = 0
+    then '22000000-0000-4000-8000-000000000001'::uuid
+    else '22000000-0000-4000-8000-000000000002'::uuid end,
+  '00000000-0000-4000-8000-000000000001'
+from public.leads lead
+where lead.workspace_id = '10000000-0000-4000-8000-000000000001'
+on conflict do nothing;
+
+insert into public.lead_notes (id, workspace_id, lead_id, author_id, content, pinned)
+values (
+  '23000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000001',
+  'Review the cited website condition before drafting outreach.',
+  true
+)
+on conflict (id) do nothing;
+
+insert into public.lead_activities (workspace_id, lead_id, actor_type, actor_id, event_type, summary, metadata)
+select lead.workspace_id, lead.id, 'system', null, 'lead.scored',
+  'Deterministic Phase 2 score calculated', jsonb_build_object('rule_version', 'phase2-v1')
+from public.leads lead
+where lead.workspace_id = '10000000-0000-4000-8000-000000000001'
+on conflict do nothing;
+
+update public.leads
+set do_not_contact = true, do_not_contact_reason = 'Synthetic opted-out example', status = 'do_not_contact'
+where id = '20000000-0000-4000-8000-000000000005';
+
+insert into public.suppression_entries (workspace_id, type, normalized_value, reason, source, created_by, lead_id)
+select workspace_id, 'domain', normalized_domain, 'Synthetic opted-out example', 'user',
+  '00000000-0000-4000-8000-000000000001', id
+from public.leads
+where id = '20000000-0000-4000-8000-000000000005' and normalized_domain is not null
+on conflict (workspace_id, type, normalized_value) do nothing;
 
 insert into public.integrations (
   id, workspace_id, provider, status, display_name, external_account_id,

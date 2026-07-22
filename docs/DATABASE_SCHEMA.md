@@ -522,3 +522,14 @@ by the CLI rather than invented manually.
 Every migration is verified with a clean `supabase db reset`, tenant-isolation SQL
 tests, generated TypeScript types, and Supabase database/security advisors before a
 remote push is ever considered.
+
+## Phase 2 migration
+
+`20260717232822_phase2_business_context_and_lead_intelligence.sql` adds business
+currency/CTA/channel/default context, multi-ICP lifecycle fields, provider and usage
+metadata for website imports, scoring rule versions, import counters, filter indexes,
+same-workspace evidence enforcement, assigned-sales-representative lead policies,
+note ownership policies, and atomic public suppression/restoration wrappers.
+
+The migration has static test coverage. Runtime reset, RLS execution, and pgTAP are
+still pending because no Docker-compatible Supabase runtime is installed.

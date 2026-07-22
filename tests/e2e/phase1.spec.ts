@@ -81,8 +81,8 @@ test("registration validates and creates a demo onboarding session", async ({ pa
   await page.getByRole("button", { name: "Create My Workspace" }).click();
 
   await expect(page).toHaveURL(/\/onboarding\?registered=1$/);
-  await expect(page.getByRole("heading", { name: "Welcome, Demo" })).toBeVisible();
-  await expect(page.getByText("This does not persist the registration form as a production account.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tell us about your company" })).toBeVisible();
+  await expect(page.getByTestId("company-name")).toHaveValue("Orliqo Test Workspace");
   expect(failures).toEqual([]);
 });
 
@@ -91,17 +91,17 @@ test("workspace switching enforces viewer billing restrictions", async ({ page }
   const failures = collectClientFailures(page);
 
   await useDemoWorkspace(page);
-  await page.getByRole("button", { name: "Orliqo Demo" }).click();
+  await page.getByRole("button", { name: "Orliqo Demo", exact: true }).click();
   await page.getByRole("button", { name: "Northstar Demo Viewer starter" }).click();
-  await expect(page.getByRole("button", { name: "Northstar Demo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Northstar Demo", exact: true })).toBeVisible();
 
   await page.goto("/app/billing");
   await expect(page.getByRole("heading", { name: "Permission required" })).toBeVisible();
   await expect(page.getByText("Your viewer role cannot access billing in this workspace.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Northstar Demo" }).click();
+  await page.getByRole("button", { name: "Northstar Demo", exact: true }).click();
   await page.getByRole("button", { name: "Orliqo Demo Owner growth" }).click();
-  await expect(page.getByRole("button", { name: "Orliqo Demo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Orliqo Demo", exact: true })).toBeVisible();
   await page.goto("/app/billing");
   await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
   expect(failures).toEqual([]);

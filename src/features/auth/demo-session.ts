@@ -8,6 +8,7 @@ import {
   type DemoSession,
 } from "@/features/auth/demo-session-codec";
 import { DEMO_USER_ID, DEMO_WORKSPACE_ID } from "@/features/demo/data";
+import { resetDemoOnboarding } from "@/features/demo/phase2-store";
 import { getServerEnvironment } from "@/lib/env";
 
 export const DEMO_SESSION_COOKIE = "orliqo-demo-session";
@@ -49,6 +50,7 @@ export async function createDemoOnboardingSession(input: {
   companyName: string;
   email: string;
 }): Promise<void> {
+  resetDemoOnboarding(DEMO_WORKSPACE_ID, input.companyName);
   await writeDemoSession({
     version: 1,
     kind: "onboarding",
@@ -64,6 +66,11 @@ export async function createDemoOnboardingSession(input: {
 export async function readDemoSession(): Promise<DemoSession | null> {
   const cookieStore = await cookies();
   return verifyDemoSessionValue(cookieStore.get(DEMO_SESSION_COOKIE)?.value, sessionSecret());
+}
+
+export function readDemoSessionFromRequest(request: Request): DemoSession | null {
+  const cookie = request.headers.get("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${DEMO_SESSION_COOKIE}=`));
+  return verifyDemoSessionValue(cookie ? decodeURIComponent(cookie.slice(DEMO_SESSION_COOKIE.length + 1)) : undefined, sessionSecret());
 }
 
 export async function setDemoActiveWorkspace(workspaceId: string): Promise<void> {

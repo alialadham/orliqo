@@ -15,6 +15,15 @@ const serverEnvironmentSchema = z
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optionalSecret,
     SUPABASE_SERVICE_ROLE_KEY: optionalSecret,
     ENCRYPTION_KEY: optionalSecret,
+    AI_PRIMARY_PROVIDER: z.enum(["gemini", "groq", "openrouter", "mock"]).default("mock"),
+    AI_FALLBACK_PROVIDERS: z.string().default("groq,openrouter,mock"),
+    GEMINI_API_KEY: optionalSecret,
+    GEMINI_MODEL: optionalSecret,
+    GROQ_API_KEY: optionalSecret,
+    GROQ_MODEL: optionalSecret,
+    OPENROUTER_API_KEY: optionalSecret,
+    OPENROUTER_MODEL: optionalSecret,
+    AI_PROMPT_VERSION: z.string().default("phase2-v1"),
   })
   .superRefine((environment, context) => {
     const demoMode = environment.DEMO_MODE === "true";
