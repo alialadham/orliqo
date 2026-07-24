@@ -14,7 +14,7 @@ import { ROLE_LABELS } from "@/features/permissions/permissions";
 import type { WorkspaceContext } from "@/features/workspaces/types";
 import { cn } from "@/lib/utils";
 
-export function DesktopSidebar({ context }: { context: WorkspaceContext }) {
+export function DesktopSidebar({ context, notificationCount }: { context: WorkspaceContext; notificationCount: number }) {
   const pathname = usePathname();
 
   return (
@@ -22,14 +22,14 @@ export function DesktopSidebar({ context }: { context: WorkspaceContext }) {
       <div className="flex h-[68px] items-center px-5"><BrandLockup compact /></div>
       <nav aria-label="Primary navigation" className="flex-1 overflow-y-auto px-2.5 py-3">
         <ul className="space-y-0.5">
-          {APP_ROUTES.map(({ label, href, icon: Icon, ...route }) => {
+          {APP_ROUTES.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || (href !== "/app/dashboard" && pathname.startsWith(`${href}/`));
             return (
               <li key={href}>
                 <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex min-h-10 items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-white/76 transition-colors hover:bg-white/[0.07] hover:text-white", active && "bg-white/[0.09] text-white")}>
                   <Icon className="size-[18px] shrink-0" strokeWidth={1.75} aria-hidden="true" />
                   <span className="flex-1 truncate">{label}</span>
-                  {"badge" in route ? <span className="grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-white">{route.badge}</span> : null}
+                  {label === "Inbox" && notificationCount > 0 ? <span className="grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-white">{Math.min(notificationCount, 99)}</span> : null}
                 </Link>
               </li>
             );
@@ -65,7 +65,7 @@ export function DesktopSidebar({ context }: { context: WorkspaceContext }) {
 
         <div className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2">
           <Avatar className="size-8 border border-white/15"><AvatarFallback className="bg-white/12 text-xs text-white">{context.user.initials}</AvatarFallback></Avatar>
-          <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{context.user.fullName}</p><p className="truncate text-[11px] text-white/45">{context.activeWorkspace.plan === "growth" ? "Growth demo" : ROLE_LABELS[context.activeWorkspace.role]}</p></div>
+          <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{context.user.fullName}</p><p className="truncate text-[11px] text-white/45">{context.isDemo ? `${context.activeWorkspace.plan} demo` : ROLE_LABELS[context.activeWorkspace.role]}</p></div>
         </div>
 
         <form action={logoutAction} className="mt-1">

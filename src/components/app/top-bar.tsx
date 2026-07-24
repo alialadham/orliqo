@@ -12,8 +12,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { logoutAction } from "@/features/auth/actions";
 import type { WorkspaceContext } from "@/features/workspaces/types";
+import type { NotificationSummary } from "@/features/notifications/data";
 
-export function DesktopTopBar({ context, searchRecords }: { context: WorkspaceContext; searchRecords: readonly SearchRecord[] }) {
+export function DesktopTopBar({ context, searchRecords, notifications }: { context: WorkspaceContext; searchRecords: readonly SearchRecord[]; notifications: readonly NotificationSummary[] }) {
   return (
     <header className="sticky top-0 z-30 hidden h-[68px] items-center justify-between gap-5 border-b border-white/10 bg-shell px-6 text-shell-foreground lg:flex">
       <GlobalSearch records={searchRecords} />
@@ -24,13 +25,12 @@ export function DesktopTopBar({ context, searchRecords }: { context: WorkspaceCo
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white" aria-label="Notifications">
-              <Bell /><span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-shell" />
+              <Bell />{notifications.length ? <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-shell" /> : null}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel>Notifications</DropdownMenuLabel><DropdownMenuSeparator />
-            <DropdownMenuItem asChild><Link href="/app/inbox" className="flex-col items-start"><span className="font-medium">3 replies need review</span><span className="text-xs text-muted-foreground">Demo inbox · 8 minutes ago</span></Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link href="/app/integrations" className="flex-col items-start"><span className="font-medium">Outlook test connection expired</span><span className="text-xs text-muted-foreground">Reconnect before live use</span></Link></DropdownMenuItem>
+            {notifications.length ? notifications.map((notification) => <DropdownMenuItem key={notification.id} asChild><Link href={notification.href} className="flex-col items-start"><span className="font-medium">{notification.title}</span><span className="text-xs text-muted-foreground">{notification.body}</span></Link></DropdownMenuItem>) : <DropdownMenuItem disabled>No unread notifications</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
         <Button asChild className="shadow-lg shadow-primary/15"><Link href="/app/campaigns/new"><Plus data-icon="inline-start" />New Campaign</Link></Button>
@@ -50,7 +50,7 @@ export function DesktopTopBar({ context, searchRecords }: { context: WorkspaceCo
   );
 }
 
-export function MobileHeader({ context, searchRecords }: { context: WorkspaceContext; searchRecords: readonly SearchRecord[] }) {
+export function MobileHeader({ context, searchRecords, notifications }: { context: WorkspaceContext; searchRecords: readonly SearchRecord[]; notifications: readonly NotificationSummary[] }) {
   const [searchOpen, setSearchOpen] = useState(false);
   return (
     <header className="sticky top-0 z-30 flex min-h-[72px] items-center justify-between bg-shell px-4 text-white lg:hidden">
@@ -64,8 +64,8 @@ export function MobileHeader({ context, searchRecords }: { context: WorkspaceCon
           </SheetContent>
         </Sheet>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white" aria-label="Notifications"><Bell /><span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-shell" /></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72"><DropdownMenuLabel>Notifications</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link href="/app/inbox">3 replies need review</Link></DropdownMenuItem><DropdownMenuItem asChild><Link href="/app/integrations">Outlook test connection expired</Link></DropdownMenuItem></DropdownMenuContent>
+          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white" aria-label="Notifications"><Bell />{notifications.length ? <span className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-shell" /> : null}</Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72"><DropdownMenuLabel>Notifications</DropdownMenuLabel><DropdownMenuSeparator />{notifications.length ? notifications.map((notification) => <DropdownMenuItem key={notification.id} asChild><Link href={notification.href}>{notification.title}</Link></DropdownMenuItem>) : <DropdownMenuItem disabled>No unread notifications</DropdownMenuItem>}</DropdownMenuContent>
         </DropdownMenu>
         <Avatar className="ml-1 size-9 border border-white/20"><AvatarFallback className="bg-white/12 text-xs text-white">{context.user.initials}</AvatarFallback></Avatar>
       </div>

@@ -18,8 +18,13 @@ export function simulateResearch(limit = 10) {
   return result("research-v1", DEMO_LEADS.slice(0, boundedLimit));
 }
 
-export function simulateAiMessage(input: { company: string; evidence: string }) {
-  const parsed = z.object({ company: z.string().min(1), evidence: z.string().min(1) }).parse(input);
+export function simulateAiMessage(input: {
+  company: string;
+  evidence: string;
+}) {
+  const parsed = z
+    .object({ company: z.string().min(1), evidence: z.string().min(1) })
+    .parse(input);
   return result("ai-message-v1", {
     subject: `${parsed.company} - a relevant website audit idea`,
     body: `I noticed ${parsed.evidence}. This deterministic preview requires approval and cannot be sent.`,
@@ -27,18 +32,49 @@ export function simulateAiMessage(input: { company: string; evidence: string }) 
   });
 }
 
-export function simulateEmailPreview(input: { to: string; subject: string; body: string }) {
-  const parsed = z.object({ to: z.string().email(), subject: z.string().min(1), body: z.string().min(1) }).parse(input);
-  return result("email-preview-v1", { ...parsed, providerStatus: "PREVIEW_ONLY" as const });
+export function simulateEmailPreview(input: {
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  const parsed = z
+    .object({
+      to: z.string().email(),
+      subject: z.string().min(1),
+      body: z.string().min(1),
+    })
+    .parse(input);
+  return result("email-preview-v1", {
+    ...parsed,
+    providerStatus: "PREVIEW_ONLY" as const,
+  });
 }
 
-export function simulateWhatsAppNoSend(input: { template: string; consent: "opted_in" | "unknown" }) {
-  const parsed = z.object({ template: z.string().min(1), consent: z.enum(["opted_in", "unknown"]) }).parse(input);
-  return result("whatsapp-no-send-v1", { ...parsed, providerStatus: "NO_SEND" as const });
+export function simulateWhatsAppNoSend(input: {
+  template: string;
+  consent: "opted_in" | "unknown";
+}) {
+  const parsed = z
+    .object({
+      template: z.string().min(1),
+      consent: z.enum(["opted_in", "unknown"]),
+    })
+    .parse(input);
+  return result("whatsapp-no-send-v1", {
+    ...parsed,
+    providerStatus: "NO_SEND" as const,
+  });
 }
 
-export function simulateStripeTestUpgrade(plan: "starter" | "growth" | "agency") {
-  return result("stripe-test-v1", { plan, livemode: false, status: "test_checkout_preview" as const });
+export function simulateBillingTestUpgrade(
+  plan: "starter" | "growth" | "agency",
+) {
+  return result("dodo-test-v1", {
+    provider: "dodo" as const,
+    plan,
+    mode: "test" as const,
+    status: "test_checkout_preview" as const,
+  });
 }
 
 export function simulateInboundReply(body: string) {

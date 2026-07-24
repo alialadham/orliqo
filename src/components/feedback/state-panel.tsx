@@ -17,11 +17,13 @@ export function StatePanel({
   title,
   description,
   action,
+  retry,
 }: {
   variant: keyof typeof icons;
   title: string;
   description: string;
   action?: { label: string; href: string };
+  retry?: { label: string; onClick: () => void };
 }) {
   const Icon = icons[variant];
   return (
@@ -31,10 +33,19 @@ export function StatePanel({
       </span>
       <h1 className="text-2xl font-bold">{title}</h1>
       <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{description}</p>
-      {action ? (
-        <Button asChild className="mt-6">
-          <Link href={action.href}>{action.label}</Link>
-        </Button>
+      {action || retry ? (
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          {retry ? (
+            <Button type="button" onClick={retry.onClick}>
+              {retry.label}
+            </Button>
+          ) : null}
+          {action ? (
+            <Button asChild variant={retry ? "outline" : "default"}>
+              <Link href={action.href}>{action.label}</Link>
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

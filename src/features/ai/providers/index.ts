@@ -22,7 +22,13 @@ export async function extractBusinessContextWithFallback(input: Omit<BusinessExt
   const registry = providers();
   const configuredOrder = [environment.AI_PRIMARY_PROVIDER, ...environment.AI_FALLBACK_PROVIDERS.split(",").map((value) => value.trim())]
     .filter((value): value is AiProviderName => value in registry);
-  const order = [...new Set([...configuredOrder, "mock" as const])];
+  const order = [
+    ...new Set(
+      environment.demoMode
+        ? [...configuredOrder, "mock" as const]
+        : configuredOrder.filter((name) => name !== "mock"),
+    ),
+  ];
   return runProviderFallback(order.map((name) => registry[name]), { ...input, promptVersion: environment.AI_PROMPT_VERSION });
 }
 

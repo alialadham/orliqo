@@ -29,6 +29,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <a
+          href="#main-content"
+          className="sr-only z-[200] rounded-md bg-background px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:ring-2 focus:ring-ring"
+        >
+          Skip to main content
+        </a>
         <TooltipProvider delayDuration={250}>
           <OfflineBanner />
           {children}

@@ -4,6 +4,7 @@ export const outreachChannels = ["email", "whatsapp", "instagram", "linkedin"] a
 export type OutreachChannel = (typeof outreachChannels)[number];
 export type Campaign = {
   id: string; workspaceId: string; name: string; description: string; goal: string; audienceSource: string;
+  leadIds?: string[];
   status: CampaignStatus; targetProspectCount: number; channels: OutreachChannel[]; mainOffer: string; mainCta: string;
   tone: string; language: string; personalizationDepth: "light" | "standard" | "deep"; followUpCount: number;
   startAt: string; sendingDays: number[]; sendWindowStart: string; sendWindowEnd: string; timezone: string;

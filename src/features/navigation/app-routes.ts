@@ -20,7 +20,7 @@ export const APP_ROUTES = [
   { label: "Leads", href: "/app/leads", icon: UserRound },
   { label: "Discovery", href: "/app/discovery", icon: Search },
   { label: "Outreach Queue", href: "/app/queue", icon: Database },
-  { label: "Inbox", href: "/app/inbox", icon: Mail, badge: 3 },
+  { label: "Inbox", href: "/app/inbox", icon: Mail },
   { label: "Calendar", href: "/app/calendar", icon: CalendarDays },
   { label: "Analytics", href: "/app/analytics", icon: ChartNoAxesCombined },
   { label: "Templates", href: "/app/templates", icon: FileText },

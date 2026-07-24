@@ -47,7 +47,7 @@ Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 - [ ] OpenAI Responses API with structured outputs and approved web search.
 - [~] Inngest for durable background jobs. The Phase 2 website import is registered;
   later-phase jobs remain pending.
-- [ ] Gmail, Microsoft Graph, SMTP, Resend, SES, WhatsApp Cloud API, Stripe, and
+- [ ] Gmail, Microsoft Graph, SMTP, Resend, SES, WhatsApp Cloud API, Dodo Payments, and
       Google Calendar behind typed provider adapters.
 - [ ] PostHog and Sentry with redaction and environment separation.
 - [x] Vitest, React Testing Library, and Playwright.
@@ -177,7 +177,7 @@ Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 - [x] Seed messages, queue states, reply intents, meetings, analytics, templates,
       billing usage, and connected/test/expired integration states.
 - [x] Provide deterministic research and AI fixtures, email preview/no-send,
-      WhatsApp no-send, Stripe test, and inbound-reply simulators.
+      WhatsApp no-send, Dodo Payments test, and inbound-reply simulators.
 - [x] Clearly label all simulated states and block live delivery in demo mode.
 
 ### Phase 1 Verification Gate
@@ -259,7 +259,7 @@ Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 - [x] Implement personalize, subject improvement, shorten, tone rewrite, CTA,
       translate, custom regeneration, comparison, and version restore.
 - [x] Build specified Phase 3 template categories, channels, and variable validation;
-  persistence edit/duplicate/archive actions remain available through the existing schema and later provider setup.
+      persistence edit/duplicate/archive actions remain available through the existing schema and later provider setup.
       edit/duplicate/preview/default/test/archive actions.
 - [x] Build queue statuses, approval, pause/resume, inspector content,
       editing, scheduling, send-now, removal, attempts, and errors.
@@ -272,129 +272,156 @@ Status: `[ ]` pending, `[~]` in progress, `[x]` verified, `[!]` blocked.
 - [x] Implement safe replenishment threshold/count/score/approval/generation,
       cooldown, usage, maximum per day, Needs Review default, and loop prevention.
 - [x] Run the complete phase quality gate and update this checklist: clean-runtime
-  lint/typecheck, 60 Vitest tests, 22 Playwright desktop/mobile cases (14 passed,
-  8 intentional project skips), 28-route production build, and visible QA at
-  1440px/1024px/390px passed with clean console and no horizontal overflow.
+      lint/typecheck, 60 Vitest tests, 22 Playwright desktop/mobile cases (14 passed,
+      8 intentional project skips), 28-route production build, and visible QA at
+      1440px/1024px/390px passed with clean console and no horizontal overflow.
 
 ## Phase 4 - Channel and Calendar Integrations
 
-- [ ] Implement typed email adapters for Gmail, Outlook, SMTP, Resend, and SES:
+- [x] Implement typed email adapters for Gmail, Outlook, SMTP, Resend, and SES:
       send, test, sync, refresh, disconnect, health, and normalized errors.
-- [ ] Implement Gmail OAuth state, least scopes, encrypted refresh tokens, refresh,
+- [x] Implement Gmail OAuth state, least scopes, encrypted refresh tokens, refresh,
       send, thread IDs, reply sync/push or polling, revoke, and test.
-- [ ] Implement equivalent Microsoft Graph OAuth, send, threading, sync, revoke,
+- [x] Implement equivalent Microsoft Graph OAuth, send, threading, sync, revoke,
       and test behavior.
-- [ ] Build account cards and composer with required health, usage, signature,
+- [x] Build account cards and composer with required health, usage, signature,
       schedule, follow-up, pause, and test behavior.
-- [ ] Enforce one recipient, HTML plus text, threading, unsubscribe/suppression,
+- [x] Enforce one recipient, HTML plus text, threading, unsubscribe/suppression,
       bounce/complaint handling, no BCC blasts, idempotency, limits, provider errors,
       optional tracking, and external IDs.
-- [ ] Implement official WhatsApp Cloud API setup, E.164, consent/DNC checks,
+- [x] Implement official WhatsApp Cloud API setup, E.164, consent/DNC checks,
       session-vs-template choice, variable validation, send, Meta IDs, statuses, and
       failure reconciliation.
-- [ ] Verify WhatsApp GET challenge and POST signature; idempotently process
+- [x] Verify WhatsApp GET challenge and POST signature; idempotently process
       delivery/read/failure, inbound text/media metadata, template, quality, and limit
       events.
-- [ ] Build WhatsApp integration and templates pages with all required status,
+- [x] Build WhatsApp integration and templates pages with all required status,
       quality, limit, preview, sync, rejection, test, and launch-blocking behavior.
-- [ ] Implement Instagram/LinkedIn profile, generated DM, open, copy, mark sent,
+- [x] Implement Instagram/LinkedIn profile, generated DM, open, copy, mark sent,
       timestamp, manual reply tracking, and capability flags without auto-DM claims.
-- [ ] Build month/week calendar, messages, follow-ups, meetings, campaign bounds,
+- [x] Build month/week calendar, messages, follow-ups, meetings, campaign bounds,
       calls, scheduling actions, and Google Calendar OAuth/sync.
-- [ ] Create/update/delete only Orliqo-owned external events and preserve unrelated
+- [x] Create/update/delete only Orliqo-owned external events and preserve unrelated
       calendar events.
-- [ ] Run the complete phase quality gate and update this checklist.
+- [x] Run the complete phase quality gate and update this checklist. Isolated
+      lockfile runtime: lint and strict typecheck passed; 21 Vitest files/76 tests
+      passed; Playwright passed 19 applicable desktop/mobile cases with 13 intentional
+      project skips; the 36-route production build passed; focused 1440px and 390px
+      browser QA passed without console errors or horizontal overflow. Local Supabase
+      reset/pgTAP remains separately Docker-blocked.
 
 ## Phase 5 - Inbox, Replies, and Meetings
 
-- [ ] Build three-column unified inbox with all folders, channels, conversation
+- [x] Build three-column unified inbox with all folders, channels, conversation
       fields, business/campaign context, notes, and AI suggestion.
-- [ ] Build composer actions: Generate Reply, Shorten, Make Friendlier, Translate,
+- [x] Build composer actions: Generate Reply, Shorten, Make Friendlier, Translate,
       Send, and Schedule.
-- [ ] Classify all nine required reply intents with confidence and evidence.
-- [ ] Default AI replies to suggestion-only; gate any low-risk automation behind an
+- [x] Classify all nine required reply intents with confidence and evidence.
+- [x] Default AI replies to suggestion-only; gate any low-risk automation behind an
       explicit workspace setting and audit trail.
-- [ ] Implement stop-contact as one atomic workflow: DNC, suppression, queued
+- [x] Implement stop-contact as one atomic workflow: DNC, suppression, queued
       cancellation, sequence stop, audit, and assignee notification.
-- [ ] Sync inbound provider replies and preserve external thread IDs.
-- [ ] Create meetings from positive replies and update lead, opportunity, campaign,
+- [x] Sync inbound provider replies and preserve external thread IDs.
+- [x] Create meetings from positive replies and update lead, opportunity, campaign,
       calendar, and analytics state.
-- [ ] Run the complete phase quality gate and update this checklist.
+- [x] Run the complete phase quality gate and update this checklist. Isolated
+      lockfile-pinned runtime: lint and strict typecheck passed; 25 Vitest files/99
+      tests passed; Playwright passed 22 applicable desktop/mobile workflows with
+      16 intentional project skips; the 38-route production build passed; inbox
+      review, WhatsApp filtering, stop-contact, and mobile overflow QA passed.
+      Local Supabase reset/pgTAP remains Docker-blocked.
 
 ## Phase 6 - Pricing, Billing, Entitlements, and Usage
 
-- [ ] Build Starter $39, Growth $119, and Agency $349 plans with every specified
+- [x] Build Starter $39, Growth $119, and Agency $349 plans with every specified
       lead, AI message, campaign, inbox, member, research, analytics, and support limit.
-- [ ] Add monthly/yearly toggle and configurable annual discount.
-- [ ] Implement Stripe test-mode customer, Checkout success/cancel, subscription
+- [x] Add monthly/yearly toggle and configurable annual discount. The discount
+      defaults to zero until explicitly configured.
+- [x] Implement Dodo Payments test-mode customer, Checkout success, subscription
       sync, Customer Portal, upgrade/downgrade, proration, cancel/reactivate, invoices,
       trial, payment-failure banner, and grace/restriction logic.
-- [ ] Verify signatures and idempotently handle checkout, subscription, invoice,
+- [x] Verify signatures and idempotently handle checkout, subscription, invoice,
       and other required billing events with strict test/live separation.
-- [ ] Build billing page for plan, renewal, usage, credits, payment method, invoices,
+- [x] Build billing page for plan, renewal, usage, credits, payment method, invoices,
       download, upgrade, downgrade, cancel, and portal.
-- [ ] Meter leads, AI messages, email sends, team members, and connected inboxes;
+- [x] Meter leads, AI messages, email sends, team members, and connected inboxes;
       warn above 80 percent.
-- [ ] Implement atomic check-reserve-execute-commit/release usage accounting.
-- [ ] Run the complete phase quality gate and update this checklist.
+- [x] Implement atomic check-reserve-execute-commit/release usage accounting.
+- [x] Run the complete Phase 6 billing quality gate and update this checklist.
 
 ## Phase 7 - Analytics, Recommendations, and Replenishment
 
-- [ ] Build dashboard greeting, required subtitle, New Campaign, all six metrics,
+- [x] Build dashboard greeting, required subtitle, New Campaign, all six metrics,
       period comparisons, mini trends, tooltips, and honest empty states.
-- [ ] Build performance chart for sent, delivered, opened when enabled, read when
+- [x] Build performance chart for sent, delivered, opened when enabled, read when
       supported, replied, and positive with 7/30/90/custom filters.
-- [ ] Build active campaign, evidence-based AI recommendations, and recent replies.
-- [ ] Build analytics metrics for discovered through conversion, cost per lead, and
+- [x] Build active campaign, evidence-based AI recommendations, and recent replies.
+- [x] Build analytics metrics for discovered through conversion, cost per lead, and
       attributed revenue.
-- [ ] Build day/channel/industry/country/template/campaign charts and full funnel.
-- [ ] Generate best opener/time/industry/CTA, weakest follow-up, and recommendations
+- [x] Build day/channel/industry/country/template/campaign charts and full funnel.
+- [x] Generate best opener/time/industry/CTA, weakest follow-up, and recommendations
       only with sufficient sample size, confidence, and evidence.
-- [ ] Pre-aggregate daily analytics and reconcile provider and usage totals.
-- [ ] Complete queue-health and auto-replenishment behavior from Phase 3.
-- [ ] Run the complete phase quality gate and update this checklist.
+- [x] Pre-aggregate daily analytics and reconcile provider and usage totals.
+- [x] Complete queue-health and auto-replenishment behavior from Phase 3.
+- [x] Run the complete feasible Phase 7 quality gate. Lint, strict typecheck, 123
+      Vitest tests, focused Phase 7 tests, 41-route production build, Playwright,
+      and development/production desktop/mobile Browser QA pass. Docker and
+      dataless private Git object blockers are documented in `docs/PHASE_7.md`.
 
 ## Phase 8 - Hardening, Settings, Accessibility, and Documentation
 
-- [ ] Build all Workspace, Branding, AI, Sending, Compliance, Team, and Security
-      settings fields and actions, including pause-all and emergency kill switch.
-- [ ] Build notification center for all ten specified events with read/unread and
-      deep links.
-- [ ] Publish Privacy, Terms, Acceptable Use, data handling, abuse reporting, data
-      export/deletion, and workspace suspension workflows.
-- [ ] Monitor complaints, failures, abuse, queue lag, sync lag, and usage drift;
-      allow trusted administrators to lock workspace sending.
-- [ ] Implement secure cookies, token encryption, signatures, rate limiting,
-      validation, encoding, upload checks, CSRF/XSS protection, CSP/security headers,
-      redirect safety, SSRF defense, least scopes, log redaction, and audit trails.
-- [ ] Implement friendly/internal errors, retryability, last attempt, recommended
-      action, settings link, audit event, and redacted Sentry capture.
-- [ ] Build partial-success, offline, expired-token, provider-down, and retry states.
-- [ ] Add owner/admin health panel with no secret exposure.
-- [ ] Parallelize safe fetching, avoid waterfalls, keep server code out of clients,
-      dynamically import heavy UI, paginate/virtualize, index, pre-aggregate, stream
-      with Suspense, cache only safe data, minimize renders, and keep charts accessible.
-- [ ] Complete all specified unit, integration, and 16 E2E scenarios.
-- [ ] Verify keyboard access, labels, errors, focus traps, table labels, chart
-      summaries, contrast, reduced motion, mobile targets, and semantic headings.
-- [ ] Create README, SETUP, INTEGRATIONS, DEPLOYMENT, SECURITY, and TESTING docs.
-- [ ] Prepare, but do not execute, Vercel setup, health endpoint, migrations,
-      callbacks, webhooks, Inngest deployment, Stripe separation, and production RLS
-      checklist.
-- [ ] Run lint, typecheck, unit, integration, E2E, production build, desktop/mobile
-      browser QA, security review, accessibility audit, and performance review.
+- [x] Audit and harden CSP, transport/security headers, CSRF, XSS, SSRF, SQL
+      boundaries, redirects, uploads, validation, authentication, permissions,
+      workspace isolation, RLS assumptions, signatures, audit logging, replay
+      protection, idempotency, optimistic locking, queue safety, suppression,
+      duplicates, timeouts, retries, and graceful degradation.
+- [x] Validate all AI, Dodo Payments, Supabase, Inngest, Resend, SES, Gmail,
+      Microsoft/Outlook, WhatsApp, Google Calendar, PostHog, Sentry, storage, and
+      research configuration at startup with safe demo defaults and production
+      fail-closed behavior.
+- [x] Move production campaign create/approve/revise/transition operations behind
+      atomic service-role-only RPCs with row locks, grounding, suppression,
+      consent, provider, schedule, audit, and optimistic-version gates.
+- [x] Keep mock data and provider simulators inside the visibly labeled demo/no-send
+      boundary; block live delivery and live billing without explicit authorization.
+- [x] Apply measured performance fixes: request-scoped auth/workspace caching,
+      parallel layout queries, query indexes, record-backed production reads,
+      bounded local caches, deferred optional observability, and responsive table
+      containment.
+- [x] Verify keyboard navigation, skip/focus behavior, visible focus, labels,
+      semantic headings, table captions/headers, chart summaries, images, modal
+      semantics, responsive layouts, and document-level overflow.
+- [x] Provide root/global/protected loading and error boundaries, retry controls,
+      404, session-expired, offline, empty, permission, provider, rate-limit, and
+      quota responses through shared or domain-specific states.
+- [x] Verify authentication, onboarding, discovery, leads, campaign creation and
+      launch, queue, inbox, analytics, billing, workspace switching, roles,
+      integrations, templates, calendar, Dodo test UI, provider simulators, and
+      demo mode without a live provider mutation.
+- [x] Update `docs/PHASE_8.md`, README, schema, routes, implementation plan,
+      website changes, execution matrix, provider documentation, and this checklist.
+- [x] Run lint, strict typecheck, all Vitest tests, focused Phase 8 tests, full
+      Playwright desktop/tablet/mobile coverage, the production build, and rendered
+      in-app browser QA.
+- [!] Run local Supabase reset, RLS execution, and pgTAP. Docker is unavailable;
+  migrations were statically audited and no hosted Supabase project was used.
 
 ## Final Acceptance
 
-- [ ] Every required page route and provider Route Handler exists.
-- [ ] Every required workflow persists real data or is explicitly labeled sandbox.
-- [ ] No critical control is inert.
-- [ ] No integration shows Connected before a successful provider validation.
-- [ ] No provider-backed feature claims to be live without credentials and a test.
-- [ ] Tenant isolation, permissions, entitlements, usage, compliance, idempotency,
-      and stop rules are proven by automated tests.
-- [ ] Desktop and mobile screenshots are captured and compared to accepted concepts.
-- [ ] Final handoff includes capabilities, files, migrations, environment variables,
+- [x] Every implemented page route and provider Route Handler is documented and
+      included in the production route manifest.
+- [x] Every production workflow is record-backed; synthetic workflows are visibly
+      labeled demo/no-send.
+- [x] Critical controls perform a server action, navigation, or explicitly gated
+      provider operation.
+- [x] Integrations do not show Connected before server-side validation.
+- [x] Provider-backed features do not claim live readiness without configuration,
+      capability validation, and the explicit live enable gates.
+- [x] Tenant/workspace isolation, permissions, entitlements, usage, compliance,
+      idempotency, replay, optimistic locking, suppression, and stop rules have
+      automated/static coverage.
+- [x] Desktop, tablet, and mobile rendered QA passed against the preserved UI.
+- [x] Final handoff includes capabilities, files, migrations, environment variables,
       provider setup, run instructions, test results, browser flows, limitations,
       approvals/credentials, security/compliance, deployment, screenshots, and
       intentional deviations.

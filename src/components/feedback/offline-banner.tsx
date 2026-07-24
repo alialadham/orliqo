@@ -25,7 +25,7 @@ export function OfflineBanner() {
       className="fixed inset-x-0 top-0 z-[100] flex min-h-10 items-center justify-center gap-2 bg-warning px-4 text-sm font-semibold text-black"
     >
       <WifiOff className="size-4" aria-hidden="true" />
-      You are offline. Saved data remains visible; actions will retry when connected.
+      You are offline. Saved data remains visible; reconnect before retrying actions.
     </div>
   );
 }

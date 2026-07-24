@@ -177,14 +177,14 @@ Exit workflow:
 - A simulated inbound reply appears once, is classified, can be answered safely,
   triggers stop-contact when requested, or creates a meeting and outcome trail.
 
-## Phase 6 - Stripe Billing, Plans, Entitlements, and Usage
+## Phase 6 - Merchant of Record Billing, Plans, Entitlements, and Usage
 
 Goal: make product access and capacity enforceable from authoritative billing state.
 
 Delivery sequence:
 
 1. Seed exact Starter, Growth, and Agency prices/features/limits and annual discount.
-2. Implement Stripe test-mode customer, Checkout, success/cancel reconciliation,
+2. Implement Dodo Payments test-mode customer, Checkout, success reconciliation,
    portal, plan changes, proration, cancellation/reactivation, invoices, and trials.
 3. Add raw-body signature verification and idempotent billing event handling.
 4. Implement failed-payment grace and restriction state.
@@ -195,7 +195,7 @@ Delivery sequence:
 
 Exit workflow:
 
-- Stripe fixtures/test mode upgrade the demo workspace, update entitlements, block a
+- Dodo Payments fixtures/test mode upgrade the demo workspace, update entitlements, block a
   restricted role, enforce limits, and reconcile duplicate webhooks exactly once.
 
 ## Phase 7 - Analytics, Recommendations, and Replenishment
@@ -218,41 +218,52 @@ Exit workflow:
 
 - Demo sends/replies/meetings roll into charts and funnel exactly once; low-sample
   insights are withheld or labeled insufficient, and replenishment remains bounded.
+- Phase 7 is complete across build, tests, and development/production browser QA.
+  See `docs/PHASE_7.md` for the external Docker and dataless Git object blockers.
 
 ## Phase 8 - Security, Compliance, Accessibility, Performance, and Docs
 
-Goal: close all cross-cutting acceptance criteria and prepare a deployable artifact
+Goal: close the cross-cutting release criteria and prepare a deployable artifact
 without deploying it.
 
-Delivery sequence:
+Implemented boundary:
 
-1. Complete Workspace, Branding, AI, Sending, Compliance, Team, Security, and Health
-   settings, including pause-all and kill switch.
-2. Complete notification center and all specified event types/deep links.
-3. Finalize legal pages, abuse reporting, export/deletion, retention, and workspace
-   suspension architecture.
-4. Run security review for auth, authorization, RLS, encryption, signatures, CSRF,
-   XSS, CSP/headers, SSRF, uploads, redirects, scopes, redaction, and rate limits.
-5. Complete all unit/integration/E2E cases, including the 16 master user journeys.
-6. Audit keyboard access, focus, labels/errors, dialogs, tables, charts, contrast,
-   reduced motion, semantic headings, and mobile targets.
-7. Remove data-fetch waterfalls, keep server code out of clients, tune pagination/
-   virtualization/indexes/aggregation/caching, and profile visible workflows.
-8. Finalize Sentry, PostHog, job/webhook logs, correlation IDs, health, queue/sync
-   lag, failure rate, and usage reconciliation.
-9. Create README, SETUP, INTEGRATIONS, DEPLOYMENT, SECURITY, and TESTING docs plus a
-   production RLS and environment checklist.
-10. Capture desktop/mobile screenshots, fidelity ledger, limitations, credentials/
-    approvals, and intentional deviations.
+1. Validate the complete runtime environment with descriptive Zod failures, safe
+   demo defaults, and production fail-closed provider and live-mode gates.
+2. Enforce nonce CSP, security headers, CSRF/origin checks, bounded bodies,
+   workspace-aware rate limits, safe redirects, SSRF controls, request timeouts,
+   signed webhooks, replay protection, and log redaction.
+3. Move production campaign creation, approval, revision, and state transitions
+   behind service-role-only transactions with row locks, optimistic timestamps,
+   grounding, suppression, consent, provider, idempotency, and audit gates.
+4. Harden queue failures, retry exhaustion, no-send demo behavior, and explicit
+   live-delivery authorization.
+5. Deduplicate request-scoped auth/workspace queries, parallelize independent
+   layout data, add query indexes, and defer optional client observability.
+6. Add skip navigation, focusable main content, semantic tables/captions, accessible
+   charts, labels, retry controls, offline state, session-expired handling, global
+   404/500 boundaries, and responsive overflow remediation.
+7. Use real workspace data for production notifications, search, templates,
+   campaigns, leads, analytics, billing, and inbox surfaces while keeping synthetic
+   fixtures explicitly demo-only.
+8. Initialize Sentry and PostHog only when configured, with PII and session
+   recording disabled.
+9. Verify lint, strict TypeScript, unit/integration tests, focused Phase 8 security
+   tests, the production build, the full Playwright matrix, and in-app desktop,
+   tablet, and mobile QA.
+10. Reconcile the README, schema, routes, provider, execution, checklist, and change
+    documentation with the implementation.
 
-Exit workflow:
+Exit condition:
 
-- The full master acceptance checklist passes in a clean demo/sandbox environment,
-  and deployment instructions are ready but no deployment or push has occurred.
+- All feasible local gates pass with no live provider call, deployment, commit,
+  push, production credential change, or hosted Supabase connection. Docker-backed
+  migration/RLS/pgTAP execution is documented as the remaining infrastructure
+  blocker.
 
 ## Current Execution Boundary
 
-Phase 2 is complete locally and its application quality gate has passed. Phase 3
-has not started. All provider credentials remain blank and every
-outreach surface is demo, preview, or manual-only. No deployment, push, or production
-operation is authorized.
+Phases 1 through 8 are implemented. Phase 8 is the final phase; there is no Phase 9.
+Provider credentials remain unchanged, and local verification uses the deterministic
+demo/no-send boundary. No deployment, push, hosted database connection, or
+production operation is authorized.

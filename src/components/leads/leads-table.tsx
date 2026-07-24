@@ -173,12 +173,18 @@ export function LeadsTable({
           ) : null}
         </div>
       </div>
-      <div className="bg-card surface-shadow w-full min-w-0 max-w-full overflow-hidden rounded-xl border [contain:inline-size]">
-        <div data-testid="leads-scroll" className="hidden w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain xl:block">
+      <div className="bg-card surface-shadow w-full max-w-full min-w-0 overflow-hidden rounded-xl border [contain:layout_inline-size_paint]">
+        <div
+          data-testid="leads-scroll"
+          className="hidden w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain xl:block"
+        >
           <table className="w-full min-w-[1180px] text-sm">
+            <caption className="sr-only">
+              Workspace leads and qualification details
+            </caption>
             <thead className="bg-muted/45 text-muted-foreground border-b text-left text-xs tracking-wide uppercase">
               <tr>
-                <th className="w-12 p-3">
+                <th scope="col" className="w-12 p-3">
                   <Checkbox
                     aria-label="Select all leads"
                     checked={allSelected}
@@ -189,18 +195,40 @@ export function LeadsTable({
                     }
                   />
                 </th>
-                <th className="p-3">Business</th>
-                <th className="p-3">Score</th>
-                <th className="p-3">Industry</th>
-                <th className="p-3">Location</th>
-                <th className="p-3">Website</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Phone</th>
-                <th className="p-3">Instagram</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Assigned</th>
-                <th className="p-3">Last activity</th>
-                <th className="p-3">
+                <th scope="col" className="p-3">
+                  Business
+                </th>
+                <th scope="col" className="p-3">
+                  Score
+                </th>
+                <th scope="col" className="p-3">
+                  Industry
+                </th>
+                <th scope="col" className="p-3">
+                  Location
+                </th>
+                <th scope="col" className="p-3">
+                  Website
+                </th>
+                <th scope="col" className="p-3">
+                  Email
+                </th>
+                <th scope="col" className="p-3">
+                  Phone
+                </th>
+                <th scope="col" className="p-3">
+                  Instagram
+                </th>
+                <th scope="col" className="p-3">
+                  Status
+                </th>
+                <th scope="col" className="p-3">
+                  Assigned
+                </th>
+                <th scope="col" className="p-3">
+                  Last activity
+                </th>
+                <th scope="col" className="p-3">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -307,7 +335,7 @@ export function LeadsTable({
                   <div className="flex items-start justify-between gap-3">
                     <Link
                       data-testid="mobile-lead-link"
-                      className="truncate font-semibold hover:text-primary"
+                      className="hover:text-primary truncate font-semibold"
                       href={`/app/leads/${lead.id}`}
                     >
                       {lead.businessName}
@@ -319,7 +347,7 @@ export function LeadsTable({
                       {lead.qualificationScore}
                     </Badge>
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 truncate text-xs">
                     {[lead.industry, lead.city, lead.country]
                       .filter(Boolean)
                       .join(" · ") || "No location recorded"}
@@ -335,7 +363,7 @@ export function LeadsTable({
                       <Badge variant="destructive">Do not contact</Badge>
                     ) : null}
                   </div>
-                  <p className="mt-3 truncate text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-3 truncate text-xs">
                     {lead.email || lead.phone || "No contact recorded"}
                   </p>
                 </div>

@@ -3,12 +3,28 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { DEMO_SESSION_COOKIE } from "@/features/auth/demo-session";
 import { safeRedirectPath } from "@/lib/navigation";
+import {
+  applySecurityHeaders,
+  buildContentSecurityPolicy,
+} from "@/lib/security/headers";
 import type { Database } from "@/lib/supabase/database.types";
 
 const protectedPrefixes = ["/app", "/onboarding"];
 
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const production = process.env.NODE_ENV === "production";
+  const nonce = crypto.randomUUID().replaceAll("-", "");
+  const csp = buildContentSecurityPolicy(nonce, production);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  let response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  const secure = (target: NextResponse) => {
+    applySecurityHeaders(target.headers, csp, production);
+    return target;
+  };
   const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
   const hasDemoSession = request.cookies.has(DEMO_SESSION_COOKIE);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,7 +37,9 @@ export async function proxy(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: { headers: requestHeaders },
+          });
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
@@ -38,10 +56,10 @@ export async function proxy(request: NextRequest) {
       "next",
       safeRedirectPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
     );
-    return NextResponse.redirect(loginUrl);
+    return secure(NextResponse.redirect(loginUrl));
   }
 
-  return response;
+  return secure(response);
 }
 
 export const config = {

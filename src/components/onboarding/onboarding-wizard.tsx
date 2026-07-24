@@ -27,10 +27,10 @@ import { cn } from "@/lib/utils";
 
 const websiteStatuses = [["no_website", "No website"], ["outdated", "Outdated website"], ["poor_mobile", "Poor mobile experience"], ["directory_only", "Directory page only"], ["slow", "Slow website"], ["no_booking", "No online booking"], ["no_ecommerce", "No e-commerce"], ["no_bilingual", "No bilingual support"]] as const;
 const channelCopy = {
-  email: ["Email", "Connect a supported mailbox in a later phase. Drafting is available now.", "Capacity follows the future provider limit."],
+  email: ["Email", "Connect a supported mailbox before delivery.", "Capacity follows the connected provider limit."],
   whatsapp: ["WhatsApp Business", "Requires the official Business Platform and approved templates.", "Capacity is unavailable until official setup."],
-  instagram: ["Instagram", "Manual-send only in Phase 2.", "Capacity is user-managed."],
-  linkedin: ["LinkedIn", "Manual-send only in Phase 2.", "Capacity is user-managed."],
+  instagram: ["Instagram", "Manual open, copy, and mark-sent workflow.", "Capacity is user-managed."],
+  linkedin: ["LinkedIn", "Manual open, copy, and mark-sent workflow.", "Capacity is user-managed."],
   manual_call: ["Manual Call List", "Available immediately for exported call lists.", "Capacity is user-managed."],
 } as const;
 
@@ -130,6 +130,7 @@ export function OnboardingWizard({ initialState, canEdit, embedded = false }: { 
     }
   }
 
+  const Content = embedded ? "div" : "main";
   return (
     <div className={cn("min-h-0", !embedded && "pb-24")}>
       <header className={cn("sticky top-0 z-30 border-b bg-background/95 backdrop-blur", embedded && "rounded-t-xl")}>
@@ -141,7 +142,10 @@ export function OnboardingWizard({ initialState, canEdit, embedded = false }: { 
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+      <Content
+        {...(!embedded ? { id: "main-content", tabIndex: -1 } : {})}
+        className="mx-auto max-w-4xl px-4 py-8 outline-none sm:px-6 sm:py-10"
+      >
         {!canEdit ? <div className="mb-6 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm">Your workspace role is read-only. You can review this profile but cannot change it.</div> : null}
         {notice ? <div role="status" className={cn("mb-6 rounded-lg border p-3 text-sm", notice.tone === "error" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-success/30 bg-success/5")}>{notice.text}</div> : null}
         <section className="rounded-xl border bg-card p-5 surface-shadow sm:p-8" aria-labelledby={`step-${step}-title`}>
@@ -152,7 +156,7 @@ export function OnboardingWizard({ initialState, canEdit, embedded = false }: { 
           {step === 5 ? <GoalsStep state={state} setState={setState} canEdit={canEdit} /> : null}
           {step === 6 ? <ReviewStep state={state} missing={missing} /> : null}
         </section>
-      </main>
+      </Content>
 
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur lg:left-[228px]">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
@@ -160,7 +164,7 @@ export function OnboardingWizard({ initialState, canEdit, embedded = false }: { 
           <div className="flex items-center gap-2">
             {step === 6 && embedded ? <Button asChild><Link href="/app/dashboard">Return to dashboard<ArrowRight /></Link></Button> : step === 6 ? <>
               <form action={saveOnboardingDraftAction}><Button type="submit" variant="outline">Save as draft</Button></form>
-              <form action={completeOnboardingAndStartCampaignAction}><Button type="submit" variant="outline" disabled={!canEdit || missing.length > 0}>Start first campaign <span className="hidden sm:inline">(Phase 3 preview)</span></Button></form>
+              <form action={completeOnboardingAndStartCampaignAction}><Button type="submit" variant="outline" disabled={!canEdit || missing.length > 0}>Start first campaign</Button></form>
               <form action={completeOnboardingAction}><Button type="submit" disabled={!canEdit || missing.length > 0}>Complete onboarding<Check /></Button></form>
             </> : <Button type="button" disabled={!canEdit || saving} onClick={continueStep}>{saving ? <Loader2 className="animate-spin" /> : null}Save & continue<ArrowRight /></Button>}
           </div>
@@ -256,19 +260,19 @@ function AudienceStep({ state, setState, canEdit, activeIcpId, onSelect, onDupli
 }
 
 function ChannelsStep({ state, setState, canEdit }: { state: OnboardingState; setState: React.Dispatch<React.SetStateAction<OnboardingState>>; canEdit: boolean }) {
-  return <><StepHeading id="step-4-title" eyebrow="Channels" title="Choose where you plan to reach prospects" description="Connection states are honest. Phase 2 stores preferences but never sends a message." /><div className="divide-y rounded-xl border">{state.channels.map((channel) => { const [name, description, capacity] = channelCopy[channel.channel]; return <div key={channel.channel} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{name}</h2><Badge variant="outline" className="capitalize">{channel.state.replaceAll("_", " ")}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{description}</p><p className="mt-1 text-xs text-muted-foreground">{capacity}</p></div><div className="flex items-center gap-3"><Button type="button" size="sm" variant="outline" disabled={channel.channel !== "manual_call"}> {channel.channel === "manual_call" ? "Ready" : "Setup later"}</Button><label className="flex items-center gap-2 text-sm font-medium"><Checkbox disabled={!canEdit} checked={channel.enabled} onCheckedChange={(checked) => setState((current) => ({ ...current, channels: current.channels.map((item) => item.channel === channel.channel ? { ...item, enabled: Boolean(checked) } : item) }))} />Enabled</label></div></div>; })}</div></>;
+  return <><StepHeading id="step-4-title" eyebrow="Channels" title="Choose where you plan to reach prospects" description="Preferences are saved here. Provider connections and approval gates still apply before delivery." /><div className="divide-y rounded-xl border">{state.channels.map((channel) => { const [name, description, capacity] = channelCopy[channel.channel]; return <div key={channel.channel} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{name}</h2><Badge variant="outline" className="capitalize">{channel.state.replaceAll("_", " ")}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{description}</p><p className="mt-1 text-xs text-muted-foreground">{capacity}</p></div><div className="flex items-center gap-3"><Button type="button" size="sm" variant="outline" disabled={channel.channel !== "manual_call"}> {channel.channel === "manual_call" ? "Ready" : "Setup later"}</Button><label className="flex items-center gap-2 text-sm font-medium"><Checkbox disabled={!canEdit} checked={channel.enabled} onCheckedChange={(checked) => setState((current) => ({ ...current, channels: current.channels.map((item) => item.channel === channel.channel ? { ...item, enabled: Boolean(checked) } : item) }))} />Enabled</label></div></div>; })}</div></>;
 }
 
 function GoalsStep({ state, setState, canEdit }: { state: OnboardingState; setState: React.Dispatch<React.SetStateAction<OnboardingState>>; canEdit: boolean }) {
   const set = <K extends keyof OnboardingState["goals"]>(key: K, value: OnboardingState["goals"][K]) => setState((current) => ({ ...current, goals: { ...current.goals, [key]: value } }));
-  return <><StepHeading id="step-5-title" eyebrow="Goals" title="Set safe campaign defaults" description="These values guide future setup. Billing and sending are not active in Phase 2." /><div className="grid gap-5 sm:grid-cols-2">
+  return <><StepHeading id="step-5-title" eyebrow="Goals" title="Set safe campaign defaults" description="These values guide campaign creation. Billing, provider, consent, and approval gates still apply." /><div className="grid gap-5 sm:grid-cols-2">
     <Field label="Leads needed per month"><input aria-label="Leads per month slider" type="range" min="1" max="2000" value={state.goals.leadsPerMonth} onChange={(event) => set("leadsPerMonth", Number(event.target.value))} /><NumberInput value={state.goals.leadsPerMonth} min={1} max={10000} onChange={(value) => set("leadsPerMonth", value ?? 1)} /></Field>
     <Field label="Messages per day" hint={state.goals.messagesPerDay > 50 ? "This may exceed future plan or provider limits." : undefined}><input aria-label="Messages per day slider" type="range" min="1" max="200" value={state.goals.messagesPerDay} onChange={(event) => set("messagesPerDay", Number(event.target.value))} /><NumberInput value={state.goals.messagesPerDay} min={1} max={1000} onChange={(value) => set("messagesPerDay", value ?? 1)} /></Field>
     <Field label="Sending start"><Input type="time" disabled={!canEdit} value={state.goals.startTime} onChange={(event) => set("startTime", event.target.value)} /></Field><Field label="Sending end"><Input type="time" disabled={!canEdit} value={state.goals.endTime} onChange={(event) => set("endTime", event.target.value)} /></Field>
     <Field label="Primary conversion goal"><Input disabled={!canEdit} value={state.goals.conversionGoal} onChange={(event) => set("conversionGoal", event.target.value)} /></Field><Field label="Workspace timezone"><Input disabled={!canEdit} value={state.goals.timezone} onChange={(event) => set("timezone", event.target.value)} /></Field>
     <Field label="Follow-up count"><NumberInput value={state.goals.followUpCount} min={0} max={10} onChange={(value) => set("followUpCount", value ?? 0)} /></Field><Field label="Minimum lead score"><input aria-label="Minimum score slider" type="range" min="0" max="100" value={state.goals.minimumScore} onChange={(event) => set("minimumScore", Number(event.target.value))} /><NumberInput value={state.goals.minimumScore} min={0} max={100} onChange={(value) => set("minimumScore", value ?? 0)} /></Field>
     <div className="sm:col-span-2"><p className="mb-2 text-sm font-medium">Preferred sending days</p><div className="flex flex-wrap gap-2">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => <label key={day} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"><Checkbox disabled={!canEdit} checked={state.goals.sendingDays.includes(index)} onCheckedChange={(checked) => set("sendingDays", checked ? [...state.goals.sendingDays, index] : state.goals.sendingDays.filter((item) => item !== index))} />{day}</label>)}</div></div>
-    <label className="flex items-start gap-3 rounded-lg border p-4 sm:col-span-2"><Checkbox disabled={!canEdit} checked={state.goals.autoReplenish} onCheckedChange={(checked) => set("autoReplenish", Boolean(checked))} /><span><span className="block text-sm font-medium">Automatic lead replenishment</span><span className="text-xs text-muted-foreground">Configuration only. No automatic discovery runs until a later phase.</span></span></label>
+    <label className="flex items-start gap-3 rounded-lg border p-4 sm:col-span-2"><Checkbox disabled={!canEdit} checked={state.goals.autoReplenish} onCheckedChange={(checked) => set("autoReplenish", Boolean(checked))} /><span><span className="block text-sm font-medium">Automatic lead replenishment</span><span className="text-xs text-muted-foreground">Runs only when the campaign, quota, and approval settings allow it.</span></span></label>
   </div></>;
 }
 

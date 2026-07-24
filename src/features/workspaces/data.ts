@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { readDemoSession } from "@/features/auth/demo-session";
 import { getCurrentUser } from "@/features/auth/session";
@@ -20,7 +21,7 @@ function initialsFor(name: string): string {
     .join("");
 }
 
-export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
+export const getWorkspaceContext = cache(async (): Promise<WorkspaceContext | null> => {
   const environment = getServerEnvironment();
   const user = await getCurrentUser();
   if (!user) return null;
@@ -62,29 +63,45 @@ export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
   if (membershipResult.error || !membershipResult.data?.length) return null;
 
   const workspaceIds = membershipResult.data.map((membership) => membership.workspace_id);
-  const { data: workspaceRows, error: workspaceError } = await supabase
-    .from("workspaces")
-    .select("id, name, slug, status")
-    .in("id", workspaceIds)
-    .eq("status", "active");
+  const [workspaceResult, subscriptionResult, usageResult] = await Promise.all([
+    supabase
+      .from("workspaces")
+      .select("id, name, slug, status")
+      .in("id", workspaceIds)
+      .eq("status", "active"),
+    supabase
+      .from("subscriptions")
+      .select("workspace_id, plan, status")
+      .in("workspace_id", workspaceIds),
+    supabase
+      .from("usage_counters")
+      .select("workspace_id, metric, used, reserved, limit_value")
+      .in("workspace_id", workspaceIds)
+      .eq("metric", "ai_messages"),
+  ]);
+  const { data: workspaceRows, error: workspaceError } = workspaceResult;
 
   if (workspaceError || !workspaceRows?.length) return null;
 
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("workspace_id, plan, status")
-    .in("workspace_id", workspaceIds);
+  const subscriptions = subscriptionResult.data;
+  const usageCounters = usageResult.data;
 
   const workspaces: WorkspaceSummary[] = workspaceRows.map((workspace) => {
     const membership = membershipResult.data.find((row) => row.workspace_id === workspace.id);
     const subscription = subscriptions?.find((row) => row.workspace_id === workspace.id);
+    const usage = usageCounters?.find(
+      (row) => row.workspace_id === workspace.id,
+    );
     return {
       id: workspace.id,
       name: workspace.name,
       slug: workspace.slug,
       role: (membership?.role ?? "viewer") as WorkspaceRole,
       plan: subscription?.plan ?? "none",
-      credits: 0,
+      credits:
+        usage?.limit_value === null || usage?.limit_value === undefined
+          ? 0
+          : Math.max(0, usage.limit_value - usage.used - usage.reserved),
     };
   });
 
@@ -115,7 +132,7 @@ export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
     isDemo: false,
     onboardingComplete: Boolean(businessProfile?.onboarding_completed),
   };
-}
+});
 
 export async function setActiveWorkspaceCookie(workspaceId: string): Promise<void> {
   const cookieStore = await cookies();

@@ -11,7 +11,9 @@ import type { WebsiteImportResult, WebsiteSuggestion } from "@/features/onboardi
 import { requirePermission } from "@/features/permissions/server";
 import { hasPermission } from "@/features/permissions/permissions";
 import { DEMO_WORKSPACES } from "@/features/demo/data";
+import { getServerEnvironment } from "@/lib/env";
 import { inngest } from "@/lib/inngest/client";
+import { bodyWithinLimit, csrfErrorResponse } from "@/lib/security/csrf";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { assertSafePublicUrl } from "@/lib/security/ssrf";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -79,12 +81,30 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  if (csrfError) return csrfError;
+  if (!bodyWithinLimit(request, 8 * 1024))
+    return NextResponse.json(
+      { error: "Website import request is too large." },
+      { status: 413 },
+    );
   const context = await authorizedWorkspace(request);
   if (!context) return NextResponse.json({ error: "Authentication or permission required." }, { status: 403 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Enter a valid public website URL." }, { status: 400 });
-  const rate = checkRateLimit(`website-import:${context.user.id}`, 5, 15 * 60_000);
-  if (!rate.allowed) return NextResponse.json({ error: `Try again in ${rate.retryAfterSeconds} seconds.` }, { status: 429 });
+  const rate = await checkRateLimit(`website-import:${context.user.id}`, 5, 15 * 60_000);
+  if (!rate.allowed)
+    return NextResponse.json(
+      {
+        error: rate.available
+          ? `Try again in ${rate.retryAfterSeconds} seconds.`
+          : "Request protection is temporarily unavailable.",
+      },
+      {
+        status: rate.available ? 429 : 503,
+        headers: { "Retry-After": String(rate.retryAfterSeconds) },
+      },
+    );
 
   const importId = crypto.randomUUID();
   if (context.demo) {

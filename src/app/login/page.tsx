@@ -10,6 +10,7 @@ const errorMessages: Record<string, string> = {
   oauth_start_failed: "Provider sign-in could not start. Try again or use email sign-in.",
   oauth_callback_failed: "Provider sign-in could not be verified. Start the connection again.",
   demo_disabled: "Demo mode is disabled in this environment.",
+  session_expired: "Your session expired. Sign in again to continue.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {

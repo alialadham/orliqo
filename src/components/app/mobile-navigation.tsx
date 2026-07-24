@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { logoutAction } from "@/features/auth/actions";
 import { HELP_ROUTE, MOBILE_MORE_ROUTES, MOBILE_PRIMARY_ROUTES } from "@/features/navigation/app-routes";
@@ -19,7 +18,7 @@ function BottomItem({ href, label, icon: Icon, active, badge }: { href?: string;
   return href ? <Link href={href} className={classes} aria-current={active ? "page" : undefined}>{content}</Link> : <span className={classes}>{content}</span>;
 }
 
-export function MobileNavigation({ context }: { context: WorkspaceContext }) {
+export function MobileNavigation({ context, notificationCount }: { context: WorkspaceContext; notificationCount: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const moreActive = MOBILE_MORE_ROUTES.some(({ href }) => pathname.startsWith(href));
@@ -27,7 +26,7 @@ export function MobileNavigation({ context }: { context: WorkspaceContext }) {
   return (
     <div className="lg:hidden">
       <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex min-h-[76px] border-t border-white/10 bg-shell px-1 pb-[env(safe-area-inset-bottom)] text-white">
-        {MOBILE_PRIMARY_ROUTES.map(({ label, href, icon, ...route }) => <BottomItem key={href} href={href} label={label} icon={icon} active={pathname === href || pathname.startsWith(`${href}/`)} badge={"badge" in route ? route.badge : undefined} />)}
+        {MOBILE_PRIMARY_ROUTES.map(({ label, href, icon }) => <BottomItem key={href} href={href} label={label} icon={icon} active={pathname === href || pathname.startsWith(`${href}/`)} badge={label === "Inbox" ? notificationCount : undefined} />)}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild><button type="button" className={cn("flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-white/72", (open || moreActive) && "text-primary")}><Ellipsis className="size-6" aria-hidden="true" /><span className="text-[11px]">More</span></button></SheetTrigger>
           <SheetContent side="right" className="w-full max-w-none gap-0 border-0 bg-background p-0 data-[side=right]:w-full data-[side=right]:max-w-none data-[side=right]:sm:max-w-none" showCloseButton={false}>
@@ -40,11 +39,10 @@ export function MobileNavigation({ context }: { context: WorkspaceContext }) {
             <div className="flex-1 overflow-y-auto px-4 pt-5 pb-24">
               <Link href="/app/settings/workspace" onClick={() => setOpen(false)} className="flex min-h-20 items-center gap-3 rounded-xl border bg-card px-4">
                 <span className="grid size-12 place-items-center rounded-xl bg-primary/10"><Building2 className="size-5 text-primary" /></span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-lg font-semibold">{context.activeWorkspace.name}</span><span className="block text-sm text-muted-foreground capitalize">{context.activeWorkspace.plan} demo</span></span><ChevronRight className="size-5" />
+                <span className="min-w-0 flex-1"><span className="block truncate text-lg font-semibold">{context.activeWorkspace.name}</span><span className="block text-sm text-muted-foreground capitalize">{context.activeWorkspace.plan}{context.isDemo ? " demo" : ""}</span></span><ChevronRight className="size-5" />
               </Link>
               <Link href="/app/billing" onClick={() => setOpen(false)} className="mt-4 block rounded-xl border bg-card p-4">
                 <span className="flex items-center gap-3 text-base font-semibold"><Coins className="size-6" />{context.activeWorkspace.credits} credits remaining</span>
-                <Progress value={32} className="mt-3 h-1.5" />
               </Link>
               <nav aria-label="More navigation" className="mt-6 px-1">
                 {MOBILE_MORE_ROUTES.map(({ label, href, icon: Icon }) => (
@@ -57,7 +55,7 @@ export function MobileNavigation({ context }: { context: WorkspaceContext }) {
               </div>
             </div>
             <div className="absolute inset-x-0 bottom-0 flex min-h-[76px] border-t border-white/10 bg-shell px-1 pb-[env(safe-area-inset-bottom)] text-white">
-              {MOBILE_PRIMARY_ROUTES.map(({ label, href, icon: Icon, ...route }) => <SheetClose asChild key={href}><Link href={href} className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-white/72"><span className="relative"><Icon className="size-6" />{"badge" in route ? <span className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-primary text-[10px]">{route.badge}</span> : null}</span><span className="text-[11px]">{label}</span></Link></SheetClose>)}
+              {MOBILE_PRIMARY_ROUTES.map(({ label, href, icon: Icon }) => <SheetClose asChild key={href}><Link href={href} className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-white/72"><span className="relative"><Icon className="size-6" />{label === "Inbox" && notificationCount > 0 ? <span className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-primary text-[10px]">{Math.min(notificationCount,99)}</span> : null}</span><span className="text-[11px]">{label}</span></Link></SheetClose>)}
               <BottomItem label="More" icon={Ellipsis} active />
             </div>
           </SheetContent>

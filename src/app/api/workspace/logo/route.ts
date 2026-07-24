@@ -3,14 +3,38 @@ import { NextResponse } from "next/server";
 
 import { readDemoSession } from "@/features/auth/demo-session";
 import { requirePermission } from "@/features/permissions/server";
+import { getServerEnvironment } from "@/lib/env";
+import { bodyWithinLimit, csrfErrorResponse } from "@/lib/security/csrf";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const allowed = new Set(["image/png", "image/jpeg", "image/webp"]);
 const maxSize = 2 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  if (csrfError) return csrfError;
+  if (!bodyWithinLimit(request, maxSize + 256 * 1024))
+    return NextResponse.json({ error: "Logo upload is too large." }, { status: 413 });
   const context = await requirePermission("settings:manage");
   if (!context) return NextResponse.json({ error: "Workspace settings permission required." }, { status: 403 });
+  const rate = await checkRateLimit(
+    `workspace-logo:${context.user.id}`,
+    10,
+    15 * 60_000,
+  );
+  if (!rate.allowed)
+    return NextResponse.json(
+      {
+        error: rate.available
+          ? "Logo update rate limit reached."
+          : "Request protection is temporarily unavailable.",
+      },
+      {
+        status: rate.available ? 429 : 503,
+        headers: { "Retry-After": String(rate.retryAfterSeconds) },
+      },
+    );
   const form = await request.formData(); const file = form.get("file");
   if (!(file instanceof File) || !allowed.has(file.type) || file.size < 1 || file.size > maxSize) return NextResponse.json({ error: "Use a PNG, JPG, or WebP logo up to 2 MB." }, { status: 400 });
   const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
@@ -27,6 +51,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  if (csrfError) return csrfError;
+  if (!bodyWithinLimit(request, 8 * 1024))
+    return NextResponse.json({ error: "Logo request is too large." }, { status: 413 });
   const context = await requirePermission("settings:manage");
   if (!context) return NextResponse.json({ error: "Workspace settings permission required." }, { status: 403 });
   const body = await request.json().catch(() => null) as { logoUrl?: string } | null;

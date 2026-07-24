@@ -33,7 +33,6 @@ export function createOpenAiCompatibleProvider(config: CompatibleConfig): AiProv
       const response = await fetchAiWithRetry(`${config.baseUrl}/chat/completions`, {
         method: "POST",
         headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
           model: config.model,
           temperature: 0,

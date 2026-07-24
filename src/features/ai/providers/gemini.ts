@@ -27,7 +27,6 @@ export function createGeminiProvider(apiKey: string, model: string): AiProvider 
       const response = await fetchAiWithRetry(`${endpoint}?key=${encodeURIComponent(apiKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: `Extract only supported facts from ${input.sourceUrl}. Do not infer missing claims.\n\n${input.content}` }] }],
           generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: businessExtractionJsonSchema },

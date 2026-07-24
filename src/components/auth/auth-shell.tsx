@@ -85,7 +85,7 @@ function RegistrationSteps() {
 export function AuthShell({ variant, children }: { variant: "login" | "register"; children: React.ReactNode }) {
   const isLogin = variant === "login";
   return (
-    <main className="min-h-dvh bg-background md:grid md:grid-cols-[minmax(410px,51%)_1fr] lg:grid-cols-[minmax(560px,51%)_1fr]">
+    <main id="main-content" tabIndex={-1} className="min-h-dvh bg-background outline-none md:grid md:grid-cols-[minmax(410px,51%)_1fr] lg:grid-cols-[minmax(560px,51%)_1fr]">
       <section className={cn("shell-texture relative hidden min-h-dvh overflow-hidden px-10 py-9 text-white md:flex md:flex-col lg:px-14 lg:py-10", !isLogin && "md:px-12 lg:px-16")}>
         <BrandLockup />
         <div className={cn("flex flex-1 flex-col", isLogin ? "justify-center py-8" : "justify-start pt-20")}>

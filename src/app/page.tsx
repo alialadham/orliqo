@@ -9,7 +9,7 @@ export default function HomePage() {
   return (
     <div className="min-h-dvh bg-background">
       <PublicHeader />
-      <main>
+      <main id="main-content" tabIndex={-1} className="outline-none">
         <section className="shell-texture overflow-hidden text-white">
           <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-20 sm:px-7 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:py-32">
             <div>

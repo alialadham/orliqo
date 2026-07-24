@@ -9,22 +9,22 @@ Orliqo starts with `DEMO_MODE=true`. A provider remains `disconnected`, `test`, 
 Every adapter exposes a typed capability descriptor and normalized operations:
 
 ```ts
-type ProviderMode = "demo" | "sandbox" | "live"
+type ProviderMode = "demo" | "sandbox" | "live";
 
 type ProviderCapability = {
-  supported: boolean
-  automated: boolean
-  requiresConsent: boolean
-  reason?: string
-}
+  supported: boolean;
+  automated: boolean;
+  requiresConsent: boolean;
+  reason?: string;
+};
 
 type ProviderHealth = {
-  ok: boolean
-  mode: ProviderMode
-  checkedAt: string
-  errorCode?: string
-  retryable?: boolean
-}
+  ok: boolean;
+  mode: ProviderMode;
+  checkedAt: string;
+  errorCode?: string;
+  retryable?: boolean;
+};
 ```
 
 Adapters must:
@@ -40,7 +40,7 @@ Adapters must:
 - Enforce authentication, workspace membership, role, entitlement, usage, and
   compliance before work is queued and again immediately before execution.
 - Encrypt refresh tokens, long-lived access tokens, SMTP credentials, app secrets,
-  and webhook verification material using `INTEGRATION_ENCRYPTION_KEY` and key
+  and webhook verification material using `ENCRYPTION_KEY` and key
   version metadata.
 - Use one-time, short-lived, hashed OAuth state and PKCE where supported. Store only
   allowlisted post-callback paths to prevent open redirects.
@@ -50,13 +50,13 @@ Adapters must:
 
 ## Capability Policy
 
-| Channel | Discovery | Generate | Automated send | Initial rule |
-| --- | --- | --- | --- | --- |
-| Email | Yes | Yes | Yes | Only through a validated Gmail, Outlook, SMTP, Resend, or SES account |
-| WhatsApp | Yes | Yes | Yes, constrained | Official Meta Cloud API only; consent and session/template rules required |
-| Instagram | Public permitted sources only | Yes | No | Open profile, copy, mark sent, and track manually |
-| LinkedIn | Public permitted sources only | Yes | No | Open profile, copy, mark sent, and track manually |
-| Manual call | Public permitted sources only | Script/notes | No | Export or mark manual activity only |
+| Channel     | Discovery                     | Generate     | Automated send   | Initial rule                                                              |
+| ----------- | ----------------------------- | ------------ | ---------------- | ------------------------------------------------------------------------- |
+| Email       | Yes                           | Yes          | Yes              | Only through a validated Gmail, Outlook, SMTP, Resend, or SES account     |
+| WhatsApp    | Yes                           | Yes          | Yes, constrained | Official Meta Cloud API only; consent and session/template rules required |
+| Instagram   | Public permitted sources only | Yes          | No               | Open profile, copy, mark sent, and track manually                         |
+| LinkedIn    | Public permitted sources only | Yes          | No               | Open profile, copy, mark sent, and track manually                         |
+| Manual call | Public permitted sources only | Script/notes | No               | Export or mark manual activity only                                       |
 
 Capability flags are provider-account specific. Future official permissions may
 enable a capability, but code must not infer authorization from provider name alone.
@@ -313,39 +313,39 @@ Initial integration is manual by design:
 
 No credentials are required for the initial manual workflows.
 
-## Stripe Billing
+## Billing Merchant of Record
 
 Requirements:
 
-- Test mode only until explicit production approval.
-- Server-side customer creation, Checkout Sessions, Customer Portal, subscription
-  sync, upgrade/downgrade, proration preview, cancel-at-period-end, reactivation,
-  invoices, trials, failed-payment grace/restriction, and test/live separation.
-- Verify webhook signature against the raw body.
-- Store Stripe event ID before processing and make handling idempotent.
-- Handle checkout completion, subscription create/update/delete, invoice paid/
-  failed, and any additional event required by the chosen billing flow.
-- Price IDs map to seeded plan entitlements; never trust a client-supplied price or
-  workspace ID.
-- Usage reservation is database-atomic and independent of Stripe metering.
+- Dodo Payments is the initial Merchant of Record. Stripe is unsupported.
+- Test mode is mandatory until separately authorized production work.
+- Provider-neutral contracts cover checkout, subscription retrieval, cancellation,
+  customer billing management, invoice/payment history, and webhook processing.
+- Verify Standard Webhooks signatures against the raw body and the
+  `webhook-id`, `webhook-timestamp`, and `webhook-signature` headers.
+- Persist `(billing_provider, provider_event_id)` before reconciliation.
+- Map provider product IDs to server-owned plans; never trust a client-supplied
+  product or workspace identity.
+- Usage reserve/commit/release remains database-atomic and provider-independent.
 
 Environment:
 
 ```text
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-STRIPE_STARTER_MONTHLY_PRICE_ID
-STRIPE_STARTER_YEARLY_PRICE_ID
-STRIPE_GROWTH_MONTHLY_PRICE_ID
-STRIPE_GROWTH_YEARLY_PRICE_ID
-STRIPE_AGENCY_MONTHLY_PRICE_ID
-STRIPE_AGENCY_YEARLY_PRICE_ID
-STRIPE_ANNUAL_DISCOUNT_PERCENT
+BILLING_PROVIDER=dodo
+BILLING_PROVIDER_MODE=test
+BILLING_LIVE_ENABLED=false
+DODO_TEST_API_KEY
+DODO_TEST_WEBHOOK_SECRET
+DODO_TEST_STARTER_MONTHLY_PRODUCT_ID
+DODO_TEST_STARTER_YEARLY_PRODUCT_ID
+DODO_TEST_GROWTH_MONTHLY_PRODUCT_ID
+DODO_TEST_GROWTH_YEARLY_PRODUCT_ID
+DODO_TEST_AGENCY_MONTHLY_PRODUCT_ID
+DODO_TEST_AGENCY_YEARLY_PRODUCT_ID
 ```
 
 Demo mode simulates checkout success/failure and entitlement changes with explicit
-test labeling; it does not create Stripe objects.
+test labeling; it does not create provider objects or network requests.
 
 ## Google Calendar API
 
@@ -386,8 +386,10 @@ Environment:
 ```text
 NEXT_PUBLIC_POSTHOG_KEY
 NEXT_PUBLIC_POSTHOG_HOST
-POSTHOG_PERSON_PROFILES=identified_only
 ```
+
+PostHog loads only in production when both values are present. Session recording
+is disabled and identification uses stable application user/workspace IDs.
 
 ## Sentry
 
@@ -407,8 +409,10 @@ SENTRY_DSN
 SENTRY_ORG
 SENTRY_PROJECT
 SENTRY_AUTH_TOKEN
-SENTRY_ENVIRONMENT
 ```
+
+Sentry loads only when a DSN is configured. Default PII is disabled, client replay
+sampling is disabled, and source-map credentials remain build/server only.
 
 ## Vercel
 
@@ -420,7 +424,7 @@ Requirements prepared in code/docs:
 - No local filesystem persistence assumptions.
 - Validated environment at startup and lazy provider clients.
 - `/api/health`, documented OAuth callbacks/webhooks, Inngest route, function
-  duration settings, Supabase migration process, and Stripe mode separation.
+  duration settings, Supabase migration process, and billing mode separation.
 - Preview deployments use demo/sandbox providers and a non-production database.
 - Production checklist verifies RLS, grants, secrets, callback origins, webhook
   signatures, domains, Sentry redaction, PostHog consent, and kill switches.
@@ -428,12 +432,12 @@ Requirements prepared in code/docs:
 Environment:
 
 ```text
+APP_URL
 NEXT_PUBLIC_APP_URL
-APP_ENV=development
+NODE_ENV=development
 DEMO_MODE=true
-INTEGRATION_ENCRYPTION_KEY
-INTEGRATION_ENCRYPTION_KEY_VERSION
-CRON_SECRET
+ENCRYPTION_KEY
+ENCRYPTION_KEY_VERSION
 ```
 
 ## Provider Readiness Gate
@@ -460,3 +464,12 @@ requests use timeouts and bounded retries for rate limits/server errors, output 
 validated before use, and website-import history records provider, model, prompt
 version, usage metadata, source URL, and retrieval time. With blank keys, only the
 deterministic mock provider is ready.
+
+## Phase 8 environment gate
+
+`src/lib/env.ts` validates AI providers, Dodo Payments, Supabase, Inngest, Resend,
+SES, Gmail, Microsoft/Outlook, WhatsApp, Google Calendar, PostHog, Sentry, storage,
+research, and delivery modes at startup. Partial provider groups fail with
+descriptive errors outside demo mode. Production rejects mock/fixture providers,
+Inngest development mode, the inbound simulator, non-HTTPS application URLs, and
+live email, WhatsApp, or billing modes without their explicit enable flags.
