@@ -13,7 +13,7 @@ const protectedPrefixes = ["/app", "/onboarding"];
 
 export async function proxy(request: NextRequest) {
   const production = process.env.NODE_ENV === "production";
-  const nonce = crypto.randomUUID().replaceAll("-", "");
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const csp = buildContentSecurityPolicy(nonce, production);
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
@@ -63,5 +63,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    {
+      source:
+        "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
 };

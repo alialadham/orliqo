@@ -11,11 +11,20 @@ describe("Phase 8 release hardening", () => {
   it("ships a nonce CSP and production transport headers", () => {
     const headers = read("src/lib/security/headers.ts");
     const proxy = read("src/proxy.ts");
+    const rootLayout = read("src/app/layout.tsx");
+    const instrumentationClient = read("src/instrumentation-client.ts");
+    const nextConfig = read("next.config.ts");
     expect(headers).toContain("'nonce-${nonce}'");
     expect(headers).toContain("'strict-dynamic'");
+    expect(headers).toContain("script-src-attr 'none'");
+    expect(headers).toContain("style-src-elem");
     expect(headers).toContain("Strict-Transport-Security");
     expect(headers).toContain("X-Content-Type-Options");
     expect(proxy).toContain("applySecurityHeaders");
+    expect(proxy).toContain("next-router-prefetch");
+    expect(rootLayout).toContain("await connection()");
+    expect(instrumentationClient).toContain("z.config({ jitless: true })");
+    expect(nextConfig).not.toContain("Content-Security-Policy");
   });
 
   it("fails closed for production secrets, providers, and live delivery", () => {

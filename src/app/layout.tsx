@@ -5,6 +5,7 @@ import "@fontsource/ibm-plex-sans-arabic/600.css";
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 
 import { OfflineBanner } from "@/components/feedback/offline-banner";
 import { Toaster } from "@/components/ui/sonner";
@@ -25,7 +26,12 @@ export const viewport: Viewport = {
   themeColor: "#101114",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  // A nonce CSP requires every document to render for its incoming request.
+  await connection();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body>

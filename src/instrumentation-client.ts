@@ -1,4 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
+import { z } from "zod";
+
+// Prevent Zod's optional runtime code-generation probe under a strict CSP.
+z.config({ jitless: true });
 
 const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 if (sentryDsn) {

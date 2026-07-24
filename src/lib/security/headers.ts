@@ -2,10 +2,23 @@ export function buildContentSecurityPolicy(
   nonce: string,
   production: boolean,
 ): string {
+  const nonceSource = `'nonce-${nonce}'`;
+  const inlineStyleHashes = [
+    // Sonner 2.0.7 inserts an empty style element, then its pinned static CSS.
+    "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+    "'sha256-CIxDM5jnsGiKqXs2v7NKCY5MzdR9gu6TtiMJrDw29AY='",
+  ].join(" ");
   const directives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${production ? "" : " 'unsafe-eval'"}`,
-    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' ${nonceSource} 'strict-dynamic'${production ? "" : " 'unsafe-eval'"}`,
+    "script-src-attr 'none'",
+    production
+      ? `style-src 'self' ${nonceSource}`
+      : "style-src 'self' 'unsafe-inline'",
+    production
+      ? `style-src-elem 'self' ${nonceSource} ${inlineStyleHashes}`
+      : "style-src-elem 'self' 'unsafe-inline'",
+    "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.posthog.com https://*.sentry.io",
