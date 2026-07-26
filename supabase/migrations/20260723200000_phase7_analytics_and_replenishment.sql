@@ -18,19 +18,21 @@ begin
 end $$;
 
 drop index if exists public.daily_analytics_workspace_campaign_metric_dimensions_idx;
+
 create unique index daily_analytics_workspace_campaign_metric_dimensions_idx
   on public.daily_analytics (
     workspace_id,
-    coalesce(campaign_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    campaign_id,
     metric_date,
-    coalesce(channel::text, ''),
-    coalesce(industry, ''),
-    coalesce(country, ''),
-    coalesce(template, ''),
-    coalesce(cta, ''),
-    coalesce(send_hour, -1),
+    channel,
+    industry,
+    country,
+    template,
+    cta,
+    send_hour,
     follow_up_step
-  );
+  )
+  nulls not distinct;
 
 create index daily_analytics_workspace_campaign_date_idx
   on public.daily_analytics (workspace_id, campaign_id, metric_date desc);
