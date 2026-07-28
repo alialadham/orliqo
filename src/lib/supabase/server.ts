@@ -3,11 +3,21 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-import { getServerEnvironment } from "@/lib/env";
+import {
+  getServerEnvironment,
+  type SupabaseOAuthEnvironment,
+} from "@/lib/env";
 import type { Database } from "@/lib/supabase/database.types";
 
-export async function createServerSupabaseClient() {
-  const environment = getServerEnvironment();
+type SupabaseClientEnvironment = Pick<
+  SupabaseOAuthEnvironment,
+  "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+>;
+
+export async function createServerSupabaseClient(
+  configuredEnvironment?: SupabaseClientEnvironment,
+) {
+  const environment = configuredEnvironment ?? getServerEnvironment();
 
   if (
     !environment.NEXT_PUBLIC_SUPABASE_URL ||

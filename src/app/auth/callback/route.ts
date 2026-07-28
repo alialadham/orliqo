@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getServerEnvironment } from "@/lib/env";
+import {
+  EnvironmentValidationError,
+  getSupabaseOAuthEnvironment,
+} from "@/lib/env";
 import { safeRedirectPath } from "@/lib/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -27,13 +30,10 @@ function callbackLog(
   );
 }
 
-function errorDetails(error: unknown): Record<string, unknown> {
-  if (!(error instanceof Error)) return { error: String(error) };
-
+function errorMetadata(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) return { errorType: typeof error };
   return {
     errorName: error.name,
-    errorMessage: error.message,
-    errorStack: error.stack,
   };
 }
 
@@ -57,27 +57,20 @@ export async function GET(request: Request) {
     activeStage = "environment_validation";
     callbackLog("info", requestId, "environment_validation", {
       status: "started",
+      validationCategory: "supabase_oauth",
     });
-    const environment = getServerEnvironment();
+    const environment = getSupabaseOAuthEnvironment();
     callbackLog("info", requestId, "environment_validation", {
       status: "succeeded",
+      validationCategory: "supabase_oauth",
       supabaseConfigured: environment.supabaseConfigured,
     });
-
-    if (!environment.supabaseConfigured) {
-      callbackLog("error", requestId, "environment_validation", {
-        status: "supabase_not_configured",
-      });
-      return NextResponse.redirect(
-        new URL("/login?error=oauth_callback_failed", requestUrl.origin),
-      );
-    }
 
     activeStage = "create_server_client";
     callbackLog("info", requestId, "create_server_client", {
       status: "started",
     });
-    const supabase = await createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient(environment);
     callbackLog("info", requestId, "create_server_client", {
       status: "succeeded",
     });
@@ -96,7 +89,6 @@ export async function GET(request: Request) {
       callbackLog("error", requestId, "exchange_code", {
         status: "failed",
         errorName: error.name,
-        errorMessage: error.message,
         errorCode: error.code,
         errorStatus: error.status,
       });
@@ -118,7 +110,11 @@ export async function GET(request: Request) {
   } catch (error) {
     callbackLog("error", requestId, activeStage, {
       status: "exception",
-      ...errorDetails(error),
+      validationCategory:
+        error instanceof EnvironmentValidationError
+          ? "supabase_oauth"
+          : undefined,
+      ...errorMetadata(error),
     });
     return NextResponse.redirect(
       new URL("/login?error=oauth_callback_failed", requestUrl.origin),

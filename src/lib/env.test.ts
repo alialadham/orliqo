@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { EnvironmentValidationError, parseServerEnvironment } from "@/lib/env";
+import {
+  EnvironmentValidationError,
+  parseServerEnvironment,
+  parseSupabaseOAuthEnvironment,
+} from "@/lib/env";
 
 describe("runtime environment validation", () => {
   it("uses no-send defaults in demo development", () => {
@@ -91,5 +95,31 @@ describe("runtime environment validation", () => {
         NEXT_PUBLIC_SUPABASE_URL: "http://project.supabase.co",
       }),
     ).toThrow(/NEXT_PUBLIC_SUPABASE_URL must use HTTPS/);
+  });
+
+  it("allows the OAuth callback with only its required production variables", () => {
+    expect(
+      parseSupabaseOAuthEnvironment({
+        NODE_ENV: "production",
+        APP_URL: "https://orliqo.example",
+        NEXT_PUBLIC_APP_URL: "https://orliqo.example",
+        NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable",
+      }),
+    ).toMatchObject({
+      supabaseConfigured: true,
+      APP_URL: "https://orliqo.example",
+    });
+  });
+
+  it("fails safely when Supabase OAuth configuration is incomplete", () => {
+    expect(() =>
+      parseSupabaseOAuthEnvironment({
+        NODE_ENV: "production",
+        APP_URL: "https://orliqo.example",
+        NEXT_PUBLIC_APP_URL: "https://orliqo.example",
+        NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+      }),
+    ).toThrow(/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
   });
 });

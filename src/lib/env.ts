@@ -10,6 +10,64 @@ const optionalPort = z.preprocess(
   z.coerce.number().int().min(1).max(65_535).optional(),
 );
 
+const supabaseOAuthEnvironmentSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    APP_URL: optionalUrl,
+    NEXT_PUBLIC_APP_URL: optionalUrl,
+    NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optionalSecret,
+  })
+  .superRefine((environment, context) => {
+    const requiredKeys = [
+      "APP_URL",
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    ] as const;
+
+    for (const key of requiredKeys) {
+      if (!environment[key]) {
+        context.addIssue({
+          code: "custom",
+          message: `${key} is required for Supabase OAuth.`,
+          path: [key],
+        });
+      }
+    }
+
+    if (
+      environment.APP_URL &&
+      environment.NEXT_PUBLIC_APP_URL &&
+      environment.APP_URL !== environment.NEXT_PUBLIC_APP_URL
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "NEXT_PUBLIC_APP_URL must match APP_URL.",
+        path: ["NEXT_PUBLIC_APP_URL"],
+      });
+    }
+
+    if (environment.NODE_ENV === "production") {
+      for (const key of [
+        "APP_URL",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_SUPABASE_URL",
+      ] as const) {
+        const value = environment[key];
+        if (value && new URL(value).protocol !== "https:") {
+          context.addIssue({
+            code: "custom",
+            message: `${key} must use HTTPS in production.`,
+            path: [key],
+          });
+        }
+      }
+    }
+  });
+
 const billingProductKeys = [
   "DODO_TEST_STARTER_MONTHLY_PRODUCT_ID",
   "DODO_TEST_STARTER_YEARLY_PRODUCT_ID",
@@ -516,6 +574,12 @@ export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema> & {
   supabaseConfigured: boolean;
 };
 
+export type SupabaseOAuthEnvironment = z.infer<
+  typeof supabaseOAuthEnvironmentSchema
+> & {
+  supabaseConfigured: true;
+};
+
 let cachedEnvironment: ServerEnvironment | undefined;
 
 export class EnvironmentValidationError extends Error {
@@ -546,6 +610,29 @@ export function parseServerEnvironment(
       parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     ),
   };
+}
+
+/**
+ * Validates only the configuration needed by the Supabase OAuth callback.
+ * Full production validation remains at feature boundaries via getServerEnvironment.
+ */
+export function parseSupabaseOAuthEnvironment(
+  source: NodeJS.ProcessEnv,
+): SupabaseOAuthEnvironment {
+  const parsed = supabaseOAuthEnvironmentSchema.safeParse(source);
+  if (!parsed.success)
+    throw new EnvironmentValidationError(parsed.error.issues);
+
+  return {
+    ...parsed.data,
+    supabaseConfigured: true,
+  };
+}
+
+export function getSupabaseOAuthEnvironment(): SupabaseOAuthEnvironment {
+  // Do not reuse the full-environment cache: this route must not inherit
+  // unrelated billing, integration, or background-job validation failures.
+  return parseSupabaseOAuthEnvironment(process.env);
 }
 
 export function getServerEnvironment(): ServerEnvironment {
