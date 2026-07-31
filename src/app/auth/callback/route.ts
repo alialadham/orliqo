@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   EnvironmentValidationError,
-  getSupabaseOAuthEnvironment,
+  getSupabaseAuthEnvironment,
 } from "@/lib/env";
 import { safeRedirectPath } from "@/lib/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -37,6 +37,12 @@ function errorMetadata(error: unknown): Record<string, unknown> {
   };
 }
 
+function callbackRedirect(requestUrl: URL, path: string) {
+  const response = NextResponse.redirect(new URL(path, requestUrl.origin));
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const requestId = crypto.randomUUID();
@@ -48,9 +54,7 @@ export async function GET(request: Request) {
     callbackLog("error", requestId, "callback", {
       status: "missing_code",
     });
-    return NextResponse.redirect(
-      new URL("/login?error=oauth_callback_failed", requestUrl.origin),
-    );
+    return callbackRedirect(requestUrl, "/login?error=oauth_callback_failed");
   }
 
   try {
@@ -59,7 +63,7 @@ export async function GET(request: Request) {
       status: "started",
       validationCategory: "supabase_oauth",
     });
-    const environment = getSupabaseOAuthEnvironment();
+    const environment = getSupabaseAuthEnvironment();
     callbackLog("info", requestId, "environment_validation", {
       status: "succeeded",
       validationCategory: "supabase_oauth",
@@ -70,7 +74,9 @@ export async function GET(request: Request) {
     callbackLog("info", requestId, "create_server_client", {
       status: "started",
     });
-    const supabase = await createServerSupabaseClient(environment);
+    const supabase = await createServerSupabaseClient(environment, {
+      requireCookieWrites: true,
+    });
     callbackLog("info", requestId, "create_server_client", {
       status: "succeeded",
     });
@@ -92,8 +98,9 @@ export async function GET(request: Request) {
         errorCode: error.code,
         errorStatus: error.status,
       });
-      return NextResponse.redirect(
-        new URL("/login?error=oauth_callback_failed", requestUrl.origin),
+      return callbackRedirect(
+        requestUrl,
+        "/login?error=oauth_callback_failed",
       );
     }
 
@@ -106,7 +113,7 @@ export async function GET(request: Request) {
       mechanism: "on_auth_user_created database trigger",
     });
 
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    return callbackRedirect(requestUrl, next);
   } catch (error) {
     callbackLog("error", requestId, activeStage, {
       status: "exception",
@@ -116,8 +123,6 @@ export async function GET(request: Request) {
           : undefined,
       ...errorMetadata(error),
     });
-    return NextResponse.redirect(
-      new URL("/login?error=oauth_callback_failed", requestUrl.origin),
-    );
+    return callbackRedirect(requestUrl, "/login?error=oauth_callback_failed");
   }
 }

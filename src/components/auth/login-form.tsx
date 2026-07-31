@@ -35,7 +35,6 @@ import {
   type AuthActionResult,
   type LoginInput,
 } from "@/features/auth/schemas";
-import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 const microsoftAction = oauthLoginAction.bind(null, "azure");
 
@@ -61,49 +60,23 @@ export function LoginForm({
     setPending(true);
     setResult(null);
     startTransition(async () => {
-      const actionResult = await loginAction(values);
-      setResult(actionResult);
-      setPending(false);
-      if (actionResult.ok && actionResult.redirectTo)
-        router.push(actionResult.redirectTo);
-    });
-  });
-
-  async function signInWithGoogle() {
-    setPending(true);
-    setResult(null);
-
-    try {
-      const supabase = createBrowserSupabaseClient();
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error || !data.url) {
+      try {
+        const actionResult = await loginAction(values);
+        setResult(actionResult);
+        if (actionResult.ok && actionResult.redirectTo) {
+          router.replace(actionResult.redirectTo);
+        }
+      } catch {
         setResult({
           ok: false,
           message:
-            error?.message ?? "Google sign-in could not start. Try again.",
+            "We could not sign you in right now. Check your connection and try again.",
         });
+      } finally {
         setPending(false);
-        return;
       }
-
-      window.location.assign(data.url);
-    } catch (error) {
-      setResult({
-        ok: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Google sign-in could not start. Try again.",
-      });
-      setPending(false);
-    }
-  }
+    });
+  });
 
   return (
     <div className="w-full">
@@ -117,7 +90,7 @@ export function LoginForm({
       </div>
 
       {result && !result.ok ? (
-        <Alert variant="destructive" className="mt-6">
+        <Alert variant="destructive" className="mt-6" aria-live="polite">
           <AlertDescription>{result.message}</AlertDescription>
         </Alert>
       ) : null}
@@ -184,6 +157,7 @@ export function LoginForm({
             size="lg"
             className="h-12 w-full text-base"
             disabled={pending}
+            aria-busy={pending}
           >
             {pending ? <Spinner data-icon="inline-start" /> : null}
             {pending ? "Signing in..." : "Continue"}
@@ -193,18 +167,18 @@ export function LoginForm({
       </form>
 
       <div className="mt-5 grid gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="bg-card h-12 w-full text-base"
-          onClick={signInWithGoogle}
-          disabled={pending}
-          aria-busy={pending}
-        >
-          <GoogleIcon data-icon="inline-start" className="size-5" />
-          {pending ? "Connecting to Google..." : "Continue with Google"}
-        </Button>
+        <form action="/auth/google" method="get">
+          {next ? <input type="hidden" name="next" value={next} /> : null}
+          <Button
+            type="submit"
+            variant="outline"
+            size="lg"
+            className="bg-card h-12 w-full text-base"
+          >
+            <GoogleIcon data-icon="inline-start" className="size-5" />
+            Continue with Google
+          </Button>
+        </form>
         <form action={microsoftAction}>
           <Button
             type="submit"
@@ -217,6 +191,9 @@ export function LoginForm({
           </Button>
         </form>
       </div>
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        No account yet? Google will create one securely and continue setup.
+      </p>
 
       <p className="text-muted-foreground mt-6 text-center text-sm">
         New to Orliqo?{" "}

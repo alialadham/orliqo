@@ -66,22 +66,38 @@ export async function loginAction(input: LoginInput): Promise<AuthActionResult> 
       message: "Too many sign-in attempts. Wait 15 minutes and try again.",
     };
 
-  const environment = getServerEnvironment();
-  if (!environment.supabaseConfigured) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabaseKey) {
     return {
       ok: false,
-      message: "Account sign-in is not configured locally. Use the labeled demo workspace.",
+      message: "Account sign-in is not configured. Use the demo workspace.",
     };
   }
 
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
+  try {
+    const supabase = await createServerSupabaseClient(
+      {
+        NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: supabaseKey,
+      },
+      { requireCookieWrites: true },
+    );
+    const { error } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
 
-  if (error) return { ok: false, message: "The email or password is incorrect." };
-  return { ok: true, redirectTo: safeRedirectPath(parsed.data.next) };
+    if (error)
+      return { ok: false, message: "The email or password is incorrect." };
+    return { ok: true, redirectTo: safeRedirectPath(parsed.data.next) };
+  } catch {
+    return {
+      ok: false,
+      message:
+        "We could not reach the sign-in service. Check your connection and try again.",
+    };
+  }
 }
 
 export async function registerAction(input: RegistrationInput): Promise<AuthActionResult> {
@@ -195,7 +211,7 @@ export async function useDemoWorkspaceAction(): Promise<void> {
   redirect("/app/dashboard");
 }
 
-export async function oauthLoginAction(provider: "google" | "azure"): Promise<void> {
+export async function oauthLoginAction(provider: "azure"): Promise<void> {
   const environment = getServerEnvironment();
   if (!environment.supabaseConfigured) redirect("/login?error=provider_not_configured");
 
@@ -205,7 +221,7 @@ export async function oauthLoginAction(provider: "google" | "azure"): Promise<vo
     provider,
     options: {
       redirectTo: `${appUrl}/auth/callback?next=/app/dashboard`,
-      scopes: provider === "azure" ? "email openid profile offline_access" : "email profile",
+      scopes: "email openid profile offline_access",
     },
   });
 

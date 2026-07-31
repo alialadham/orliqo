@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 import {
   EnvironmentValidationError,
   parseServerEnvironment,
-  parseSupabaseOAuthEnvironment,
+  parseSupabaseAuthEnvironment,
 } from "@/lib/env";
 
 describe("runtime environment validation", () => {
@@ -97,9 +97,9 @@ describe("runtime environment validation", () => {
     ).toThrow(/NEXT_PUBLIC_SUPABASE_URL must use HTTPS/);
   });
 
-  it("allows the OAuth callback with only its required production variables", () => {
+  it("allows Supabase auth with only its required production variables", () => {
     expect(
-      parseSupabaseOAuthEnvironment({
+      parseSupabaseAuthEnvironment({
         NODE_ENV: "production",
         APP_URL: "https://orliqo.example",
         NEXT_PUBLIC_APP_URL: "https://orliqo.example",
@@ -114,7 +114,7 @@ describe("runtime environment validation", () => {
 
   it("fails safely when Supabase OAuth configuration is incomplete", () => {
     expect(() =>
-      parseSupabaseOAuthEnvironment({
+      parseSupabaseAuthEnvironment({
         NODE_ENV: "production",
         APP_URL: "https://orliqo.example",
         NEXT_PUBLIC_APP_URL: "https://orliqo.example",

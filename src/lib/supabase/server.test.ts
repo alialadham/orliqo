@@ -31,6 +31,7 @@ describe("server Supabase client", () => {
     });
 
     const options = mocks.createServerClient.mock.calls[0]?.[2];
+    expect(options.global.fetch).toBeTypeOf("function");
     options.cookies.setAll([
       {
         name: "sb-project-auth-token-code-verifier",
