@@ -638,8 +638,8 @@ export function parseSupabaseAuthEnvironment(
 }
 
 export function getSupabaseAuthEnvironment(): SupabaseAuthEnvironment {
-  // Do not reuse the full-environment cache: this route must not inherit
-  // unrelated billing, integration, or background-job validation failures.
+  // Auth and ordinary database reads must not inherit unrelated provider
+  // validation failures from the full production environment.
   return parseSupabaseAuthEnvironment(process.env);
 }
 

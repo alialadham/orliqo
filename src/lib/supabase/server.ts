@@ -3,7 +3,10 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-import { getServerEnvironment, type SupabaseAuthEnvironment } from "@/lib/env";
+import {
+  getSupabaseAuthEnvironment,
+  type SupabaseAuthEnvironment,
+} from "@/lib/env";
 import { fetchWithTimeout } from "@/lib/http";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -16,7 +19,7 @@ export async function createServerSupabaseClient(
   configuredEnvironment?: SupabaseClientEnvironment,
   options: { requireCookieWrites?: boolean } = {},
 ) {
-  const environment = configuredEnvironment ?? getServerEnvironment();
+  const environment = configuredEnvironment ?? getSupabaseAuthEnvironment();
 
   if (
     !environment.NEXT_PUBLIC_SUPABASE_URL ||
