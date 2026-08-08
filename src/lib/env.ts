@@ -10,7 +10,7 @@ const optionalPort = z.preprocess(
   z.coerce.number().int().min(1).max(65_535).optional(),
 );
 
-const supabaseOAuthEnvironmentSchema = z
+const supabaseAuthEnvironmentSchema = z
   .object({
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -574,9 +574,12 @@ export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema> & {
   supabaseConfigured: boolean;
 };
 
-export type SupabaseOAuthEnvironment = z.infer<
-  typeof supabaseOAuthEnvironmentSchema
-> & {
+export type SupabaseAuthEnvironment = {
+  NODE_ENV: "development" | "test" | "production";
+  APP_URL: string;
+  NEXT_PUBLIC_APP_URL: string;
+  NEXT_PUBLIC_SUPABASE_URL: string;
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: string;
   supabaseConfigured: true;
 };
 
@@ -613,26 +616,31 @@ export function parseServerEnvironment(
 }
 
 /**
- * Validates only the configuration needed by the Supabase OAuth callback.
+ * Validates only the configuration needed by Supabase authentication.
  * Full production validation remains at feature boundaries via getServerEnvironment.
  */
-export function parseSupabaseOAuthEnvironment(
+export function parseSupabaseAuthEnvironment(
   source: NodeJS.ProcessEnv,
-): SupabaseOAuthEnvironment {
-  const parsed = supabaseOAuthEnvironmentSchema.safeParse(source);
+): SupabaseAuthEnvironment {
+  const parsed = supabaseAuthEnvironmentSchema.safeParse(source);
   if (!parsed.success)
     throw new EnvironmentValidationError(parsed.error.issues);
 
   return {
     ...parsed.data,
+    APP_URL: parsed.data.APP_URL!,
+    NEXT_PUBLIC_APP_URL: parsed.data.NEXT_PUBLIC_APP_URL!,
+    NEXT_PUBLIC_SUPABASE_URL: parsed.data.NEXT_PUBLIC_SUPABASE_URL!,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     supabaseConfigured: true,
   };
 }
 
-export function getSupabaseOAuthEnvironment(): SupabaseOAuthEnvironment {
-  // Do not reuse the full-environment cache: this route must not inherit
-  // unrelated billing, integration, or background-job validation failures.
-  return parseSupabaseOAuthEnvironment(process.env);
+export function getSupabaseAuthEnvironment(): SupabaseAuthEnvironment {
+  // Auth and ordinary database reads must not inherit unrelated provider
+  // validation failures from the full production environment.
+  return parseSupabaseAuthEnvironment(process.env);
 }
 
 export function getServerEnvironment(): ServerEnvironment {
@@ -641,8 +649,4 @@ export function getServerEnvironment(): ServerEnvironment {
   cachedEnvironment = parseServerEnvironment(process.env);
 
   return cachedEnvironment;
-}
-
-export function validateRuntimeEnvironment(): void {
-  getServerEnvironment();
 }

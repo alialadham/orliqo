@@ -31,7 +31,7 @@ export async function proxy(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   let hasSupabaseUser = false;
 
-  if (url && key) {
+  if (isProtected && url && key) {
     const supabase = createServerClient<Database>(url, key, {
       cookies: {
         getAll: () => request.cookies.getAll(),

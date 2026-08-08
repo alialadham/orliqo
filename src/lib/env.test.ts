@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 import {
   EnvironmentValidationError,
   parseServerEnvironment,
-  parseSupabaseOAuthEnvironment,
+  parseSupabaseAuthEnvironment,
 } from "@/lib/env";
 
 describe("runtime environment validation", () => {
@@ -97,9 +97,9 @@ describe("runtime environment validation", () => {
     ).toThrow(/NEXT_PUBLIC_SUPABASE_URL must use HTTPS/);
   });
 
-  it("allows the OAuth callback with only its required production variables", () => {
+  it("allows Supabase auth with only its required production variables", () => {
     expect(
-      parseSupabaseOAuthEnvironment({
+      parseSupabaseAuthEnvironment({
         NODE_ENV: "production",
         APP_URL: "https://orliqo.example",
         NEXT_PUBLIC_APP_URL: "https://orliqo.example",
@@ -114,12 +114,54 @@ describe("runtime environment validation", () => {
 
   it("fails safely when Supabase OAuth configuration is incomplete", () => {
     expect(() =>
-      parseSupabaseOAuthEnvironment({
+      parseSupabaseAuthEnvironment({
         NODE_ENV: "production",
         APP_URL: "https://orliqo.example",
         NEXT_PUBLIC_APP_URL: "https://orliqo.example",
         NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
       }),
     ).toThrow(/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
+  });
+
+  it("keeps unrelated production providers fail-closed", () => {
+    const requiredBase = {
+      NODE_ENV: "production",
+      APP_URL: "https://orliqo.example",
+      NEXT_PUBLIC_APP_URL: "https://orliqo.example",
+      DEMO_MODE: "false",
+      NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role",
+      ENCRYPTION_KEY: "x".repeat(32),
+      AI_PRIMARY_PROVIDER: "gemini",
+      AI_FALLBACK_PROVIDERS: "",
+      AI_FIXTURE_MODE: "false",
+      GEMINI_API_KEY: "gemini-key",
+      GEMINI_MODEL: "gemini-model",
+      INNGEST_EVENT_KEY: "event-key",
+      INNGEST_SIGNING_KEY: "signing-key",
+      INNGEST_DEV: "false",
+      INBOUND_REPLY_SIMULATOR: "false",
+    } as const;
+
+    expect(() =>
+      parseServerEnvironment({
+        ...requiredBase,
+        GEMINI_API_KEY: "",
+      }),
+    ).toThrow(/GEMINI_API_KEY/);
+    expect(() =>
+      parseServerEnvironment({
+        ...requiredBase,
+        INNGEST_SIGNING_KEY: "",
+      }),
+    ).toThrow(/INNGEST_SIGNING_KEY/);
+    expect(() =>
+      parseServerEnvironment({
+        ...requiredBase,
+        BILLING_LIVE_ENABLED: "true",
+        BILLING_PROVIDER_MODE: "live",
+      }),
+    ).toThrow(/DODO_LIVE_API_KEY/);
   });
 });

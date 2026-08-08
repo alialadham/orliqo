@@ -3,7 +3,11 @@ import "server-only";
 import { cache } from "react";
 
 import { readDemoSession } from "@/features/auth/demo-session";
-import { getServerEnvironment } from "@/lib/env";
+import {
+  EnvironmentValidationError,
+  getSupabaseAuthEnvironment,
+  type SupabaseAuthEnvironment,
+} from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type CurrentUser = {
@@ -15,9 +19,7 @@ export type CurrentUser = {
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  const environment = getServerEnvironment();
-
-  if (environment.demoMode) {
+  if (process.env.DEMO_MODE !== "false") {
     const demoSession = await readDemoSession();
     if (demoSession) {
       return {
@@ -30,9 +32,15 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     }
   }
 
-  if (!environment.supabaseConfigured) return null;
+  let environment: SupabaseAuthEnvironment;
+  try {
+    environment = getSupabaseAuthEnvironment();
+  } catch (error) {
+    if (error instanceof EnvironmentValidationError) return null;
+    throw error;
+  }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient(environment);
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user?.email) return null;
@@ -41,6 +49,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     id: data.user.id,
     email: data.user.email,
     provider: "supabase",
-    fullName: typeof data.user.user_metadata.full_name === "string" ? data.user.user_metadata.full_name : undefined,
+    fullName:
+      typeof data.user.user_metadata.full_name === "string"
+        ? data.user.user_metadata.full_name
+        : undefined,
   };
 });
