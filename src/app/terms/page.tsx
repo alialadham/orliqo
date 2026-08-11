@@ -1,42 +1,28 @@
+import type { Metadata } from "next";
+
 import { PublicDocument } from "@/components/public/public-shell";
 
+export const metadata: Metadata = { title: "Terms of Service" };
+
 export default function TermsPage() {
-  return (
-    <PublicDocument
-      eyebrow="Legal"
-      title="Terms"
-      summary="These terms govern access to Orliqo and its evidence-backed outreach workflows."
-    >
-      <section>
-        <h2>Authorized use</h2>
-        <p>
-          You must have authority to connect provider accounts and use workspace
-          data. You are responsible for following provider policies, applicable
-          outreach laws, consent requirements, and suppression obligations.
-        </p>
-      </section>
-      <section>
-        <h2>Review responsibility</h2>
-        <p>
-          Generated content must be reviewed before approval or delivery. Do
-          not represent guessed contact details as verified, bypass opt-outs,
-          or use Orliqo for deceptive or unlawful outreach.
-        </p>
-      </section>
-      <section>
-        <h2>Service safeguards</h2>
-        <p>
-          Orliqo may pause delivery, restrict access, or reject provider actions
-          when safety checks, quotas, permissions, billing status, or provider
-          requirements are not satisfied.
-        </p>
-      </section>
-      <section>
-        <h2>Contact</h2>
-        <p>
-          Questions about these terms can be sent to support@orliqo.com.
-        </p>
-      </section>
-    </PublicDocument>
-  );
+  return <PublicDocument eyebrow="Legal" title="Terms of Service" summary="The rules for using Orliqo responsibly as a business outreach platform.">
+    <p><strong>Effective date:</strong> 11 August 2026</p>
+    <section><h2>1. Agreement and eligibility</h2><p>These Terms govern access to Orliqo. By creating an account or using the service, you agree to them and to the Privacy Policy and Acceptable Use Policy. You must be at least 18, able to form a binding contract, and authorized to accept these Terms for your business. “Customer” means the person or entity controlling the workspace; “you” includes its authorized users.</p></section>
+    <section><h2>2. Accounts and workspaces</h2><p>You must provide accurate information, protect authentication methods, use only authorized provider accounts, and promptly remove access for people who no longer need it. Workspace owners control memberships and are responsible for activity performed through their workspace. Tell us promptly about suspected unauthorized access.</p></section>
+    <section><h2>3. The service</h2><p>Orliqo helps businesses discover and qualify prospects, prepare personalized outreach, manage campaigns and replies, connect communication providers, and understand performance. Features, limits, and integrations may change. Generated research, qualification, recommendations, and content are assistance—not a guarantee of accuracy, deliverability, conversion, or legal compliance.</p></section>
+    <section><h2>4. Your data and content</h2><p>You retain ownership of business, lead, contact, campaign, and communication content you submit. You grant Orliqo a limited right to host, process, transmit, back up, and display that content only to provide, secure, support, and improve the service as described in the Privacy Policy and any applicable data-processing agreement. You represent that you have the rights and lawful authority needed to provide and use the data.</p></section>
+    <section><h2>5. Responsible outreach</h2><p>You—not Orliqo—are the sender and controller of your outreach. You must identify a lawful basis where required; follow CAN-SPAM, GDPR/UK GDPR, ePrivacy/PECR, CCPA/CPRA, Jordanian requirements, provider terms, and other applicable rules; use truthful identities, headers, and subjects; include required sender details and opt-out methods; honor objections, unsubscribe requests, complaints, and suppression lists promptly; and observe channel-specific consent requirements. You may not disguise identity, send deceptive content, bypass suppression, scrape where unlawful or prohibited, purchase unlawfully obtained lists, or use abusive automation.</p></section>
+    <section><h2>6. AI-generated content</h2><p>AI output can be incomplete, inaccurate, or similar to content produced for others. You must review facts, sources, claims, tone, recipients, and legal requirements before approval or sending. Do not use output for decisions that produce legal or similarly significant effects without appropriate human review. Orliqo may block unsupported claims or unsafe delivery but does not assume your compliance obligations.</p></section>
+    <section><h2>7. Integrations</h2><p>Third-party services are governed by their own terms and privacy practices. You authorize Orliqo to access and act through an integration only as directed by your workspace. We are not responsible for a third party’s service, changes, suspension, or data handling. Disconnecting an integration may stop related features but may not delete records already required for security, billing, or conversation history.</p></section>
+    <section><h2>8. Plans, billing, cancellation, and refunds</h2><p>Paid plans renew for the selected billing period unless cancelled. Prices, taxes, usage limits, and trial terms are shown at purchase or in an order form. You authorize the billing provider to charge the payment method supplied. Cancellation takes effect at the end of the current paid period unless stated otherwise. Fees are non-refundable except where required by law or expressly stated in an order form or published refund policy. We may change future pricing with reasonable notice.</p></section>
+    <section><h2>9. Acceptable use and enforcement</h2><p>You may not violate law or third-party rights; send spam or malware; harass or discriminate; impersonate others; interfere with service security; probe accounts or data without authorization; reverse engineer except where law permits; resell access without agreement; or use Orliqo to build a competing dataset or service. We may rate-limit, reject, pause, suspend, or terminate activity that threatens recipients, providers, other customers, or Orliqo. See the <a href="/acceptable-use">Acceptable Use Policy</a>.</p></section>
+    <section><h2>10. Intellectual property and feedback</h2><p>Orliqo and its software, design, documentation, and trademarks are owned by Orliqo or its licensors. These Terms give you a limited, non-exclusive, non-transferable right to use the service during your subscription. If you provide feedback, you allow Orliqo to use it without restriction or payment, provided we do not identify you publicly without permission.</p></section>
+    <section><h2>11. Availability and changes</h2><p>We aim to provide a reliable service but do not guarantee uninterrupted or error-free operation. Maintenance, provider outages, security events, legal requirements, and events beyond reasonable control may affect availability. We may modify or discontinue features and will use reasonable efforts to give notice when a material change adversely affects paid use.</p></section>
+    <section><h2>12. Suspension and termination</h2><p>You may stop using Orliqo or cancel a subscription. We may suspend or terminate access for material breach, non-payment, security risk, unlawful outreach, provider harm, or legal obligation. Where practical, we will give notice and an opportunity to cure. After termination, access ends and data is handled under the Privacy Policy and applicable order form. Provisions that should reasonably survive—including payment, ownership, disclaimers, liability, and disputes—remain effective.</p></section>
+    <section><h2>13. Disclaimers</h2><p>To the maximum extent permitted by law, Orliqo is provided “as is” and “as available.” We disclaim implied warranties of merchantability, fitness for a particular purpose, non-infringement, and any warranty that leads, contact information, AI output, deliverability, or business results will be accurate or successful. Nothing excludes a warranty that cannot legally be excluded.</p></section>
+    <section><h2>14. Liability</h2><p>To the maximum extent permitted by law, neither party is liable for indirect, incidental, special, consequential, exemplary, or punitive damages, or lost profits, revenue, goodwill, or data. Orliqo’s aggregate liability arising from the service will not exceed fees paid or payable for the service during the 12 months before the event giving rise to the claim. These limits do not apply where prohibited by law or to liability that cannot legally be limited.</p></section>
+    <section><h2>15. Indemnity</h2><p>To the extent permitted by law, a business Customer will defend and indemnify Orliqo against third-party claims arising from its content, contact data, outreach, integrations, breach of these Terms, or violation of law or third-party rights, except to the extent caused by Orliqo’s breach or willful misconduct.</p></section>
+    <section><h2>16. Governing law and disputes</h2><p>Unless an order form states otherwise or mandatory law requires another result, these Terms are governed by the laws of the Hashemite Kingdom of Jordan, without regard to conflict-of-law rules, and disputes will be submitted to the competent courts of Amman, Jordan. Consumers retain any non-waivable rights and forums available under applicable law.</p></section>
+    <section><h2>17. Updates and contact</h2><p>We may update these Terms for legal, security, or service changes. Material changes will be communicated reasonably in advance when required. Continued use after the effective date constitutes acceptance. Questions: <a href="mailto:legal@orliqo.com">legal@orliqo.com</a>. The contracting legal entity, registered address, governing-law clause, indemnity, liability cap, refund wording, and dispute process require licensed legal review before launch.</p></section>
+  </PublicDocument>;
 }

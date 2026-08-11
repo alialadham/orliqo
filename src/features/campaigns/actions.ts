@@ -20,8 +20,9 @@ import {
   releaseUsage,
 } from "@/features/billing/usage";
 import { writeAuditLog } from "@/features/audit/server";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { inngest } from "@/lib/inngest/client";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 export type CampaignActionResult = {
   ok: boolean;
@@ -99,6 +100,22 @@ async function context(
   const demo = (await readDemoSession())?.kind === "workspace";
   return { value, demo };
 }
+
+async function actionRateLimited(
+  workspaceId: string,
+  action: string,
+  limit: number,
+  windowMs: number,
+): Promise<CampaignActionResult | null> {
+  const result = await checkRateLimit(`campaign:${action}:${workspaceId}`, limit, windowMs);
+  if (result.allowed) return null;
+  return {
+    ok: false,
+    message: result.available
+      ? "This action was requested too often. Wait a moment and try again."
+      : "Request protection is temporarily unavailable. Please try again shortly.",
+  };
+}
 export async function createCampaignAction(
   input: CampaignInput,
 ): Promise<CampaignActionResult> {
@@ -115,6 +132,8 @@ export async function createCampaignAction(
       ok: false,
       message: "You do not have permission to create campaigns.",
     };
+  const limited = await actionRateLimited(ctx.value.activeWorkspace.id, "create", 20, 60 * 60_000);
+  if (limited) return limited;
   if (!ctx.demo) {
     try {
       const { data, error } = await productionClient()
@@ -155,6 +174,8 @@ export async function generateCampaignMessagesAction(
       ok: false,
       message: "You do not have permission to generate messages.",
     };
+  const limited = await actionRateLimited(ctx.value.activeWorkspace.id, "generate", 20, 60 * 60_000);
+  if (limited) return limited;
   if (!ctx.demo) {
     const client = productionClient();
     const workspaceId = ctx.value.activeWorkspace.id;
@@ -559,6 +580,13 @@ export async function controlCampaignAction(
       ok: false,
       message: "You do not have permission to control this campaign.",
     };
+  const limited = await actionRateLimited(
+    ctx.value.activeWorkspace.id,
+    action === "launch" ? "launch" : "control",
+    action === "launch" ? 10 : 60,
+    60 * 60_000,
+  );
+  if (limited) return limited;
   if (!ctx.demo) {
     const client = productionClient();
     const workspaceId = ctx.value.activeWorkspace.id;
@@ -745,7 +773,7 @@ export async function controlCampaignAction(
   revalidatePath("/app/queue");
   return { ok: true, message: `Campaign ${action} applied safely.` };
 }
-export async function dispatchDemoMessageAction(
+export async function dispatchMessageAction(
   messageId: string,
 ): Promise<CampaignActionResult> {
   const ctx = await context("message:send");
@@ -754,8 +782,10 @@ export async function dispatchDemoMessageAction(
       ok: false,
       message: "You do not have permission to send messages.",
     };
+  const limited = await actionRateLimited(ctx.value.activeWorkspace.id, "send", 120, 60_000);
+  if (limited) return limited;
   if (!ctx.demo) {
-    const environment = getServerEnvironment();
+    const environment = getRuntimeEnvironment();
     const client = productionClient();
     const workspaceId = ctx.value.activeWorkspace.id;
     try {

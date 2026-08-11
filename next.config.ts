@@ -4,6 +4,9 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  logging: {
+    serverFunctions: false,
+  },
   turbopack: {
     root: process.cwd(),
   },
@@ -42,8 +45,23 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/(login|register|forgot-password|reset-password)",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+        ],
+      },
+      {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      {
+        source: "/favicon.ico",
+        destination: "/brand/orliqo-mark.png",
+        permanent: true,
       },
     ];
   },

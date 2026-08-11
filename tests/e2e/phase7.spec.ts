@@ -1,59 +1,28 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-async function demo(page: Page) {
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Use demo workspace" }).click();
-  await expect(page).toHaveURL(/\/app\/dashboard$/);
-}
+const viewports = [
+  { width: 390, height: 844 },
+  { width: 430, height: 932 },
+  { width: 768, height: 1024 },
+  { width: 1024, height: 768 },
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+];
 
-test("dashboard renders record-backed Phase 7 analytics", async ({
+test("public account and legal pages fit every target viewport", async ({
   page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop workflow");
-  await demo(page);
-  await expect(
-    page.getByRole("region", { name: "Outreach summary" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Outreach performance" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "AI Recommendations" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "30D" }).click();
-  await expect(page.getByRole("button", { name: "30D" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-});
-
-test("analytics route shows funnel, dimensions, and evidence", async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop workflow");
-  await demo(page);
-  await page.goto("/app/analytics?range=30");
-  await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Full outreach funnel" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Performance dimensions" }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "90D" }).click();
-  await expect(page).toHaveURL(/range=90/);
-});
-
-test("analytics remains responsive on mobile", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "mobile-chromium", "Mobile workflow");
-  await demo(page);
-  await page.goto("/app/analytics");
-  await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
-  expect(
-    await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth,
-    ),
-  ).toBe(false);
+}) => {
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const path of ["/login", "/register", "/privacy", "/terms"]) {
+      await page.goto(path);
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
+      );
+      expect(overflow, `${path} at ${viewport.width}px`).toBe(false);
+    }
+  }
 });

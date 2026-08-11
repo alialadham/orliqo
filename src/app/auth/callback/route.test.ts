@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createServerSupabaseClient: vi.fn(),
   getSupabaseAuthEnvironment: vi.fn(),
+  ensureAuthenticatedUserWorkspace: vi.fn(),
+}));
+
+vi.mock("@/features/auth/bootstrap", () => ({
+  ensureAuthenticatedUserWorkspace: mocks.ensureAuthenticatedUserWorkspace,
 }));
 
 vi.mock("@/lib/env", () => {
@@ -34,10 +39,12 @@ describe("Supabase OAuth callback", () => {
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.getSupabaseAuthEnvironment.mockReturnValue(oauthEnvironment);
+    mocks.ensureAuthenticatedUserWorkspace.mockResolvedValue(true);
   });
 
   it("exchanges the code and redirects to the intended app route", async () => {
-    const exchangeCodeForSession = vi.fn().mockResolvedValue({ error: null });
+    const user = { id: "00000000-0000-4000-8000-000000000001" };
+    const exchangeCodeForSession = vi.fn().mockResolvedValue({ data: { user }, error: null });
     mocks.createServerSupabaseClient.mockResolvedValue({
       auth: { exchangeCodeForSession },
     });
@@ -58,6 +65,7 @@ describe("Supabase OAuth callback", () => {
       { requireCookieWrites: true },
     );
     expect(exchangeCodeForSession).toHaveBeenCalledWith("redacted");
+    expect(mocks.ensureAuthenticatedUserWorkspace).toHaveBeenCalledWith(user);
   });
 
   it("redirects to login when the code exchange fails", async () => {

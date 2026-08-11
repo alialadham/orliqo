@@ -8,5 +8,5 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
-  return <StatePanel variant="error" title="Workspace view unavailable" description="The request failed safely. Retry this view; no provider delivery was attempted." retry={{ label: "Retry", onClick: reset }} action={{ label: "Return to dashboard", href: "/app/dashboard" }} />;
+  return <StatePanel variant="error" title="We couldn’t load this workspace view" description="Try this page again. If the problem continues, return to the dashboard and retry in a moment." retry={{ label: "Try again", onClick: reset }} action={{ label: "Return to dashboard", href: "/app/dashboard" }} />;
 }

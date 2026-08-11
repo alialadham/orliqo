@@ -5,10 +5,10 @@ import { runProviderFallback } from "@/features/ai/providers/fallback";
 import { createMockProvider } from "@/features/ai/providers/mock";
 import { createOpenAiCompatibleProvider } from "@/features/ai/providers/openai-compatible";
 import type { AiExtractionResult, AiProvider, AiProviderName, BusinessExtractionInput } from "@/features/ai/providers/types";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 
 function providers(): Record<AiProviderName, AiProvider> {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   return {
     gemini: createGeminiProvider(environment.GEMINI_API_KEY ?? "", environment.GEMINI_MODEL ?? ""),
     groq: createOpenAiCompatibleProvider({ name: "groq", baseUrl: "https://api.groq.com/openai/v1", apiKey: environment.GROQ_API_KEY ?? "", model: environment.GROQ_MODEL ?? "" }),
@@ -18,7 +18,7 @@ function providers(): Record<AiProviderName, AiProvider> {
 }
 
 export async function extractBusinessContextWithFallback(input: Omit<BusinessExtractionInput, "promptVersion">): Promise<AiExtractionResult> {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const registry = providers();
   const configuredOrder = [environment.AI_PRIMARY_PROVIDER, ...environment.AI_FALLBACK_PROVIDERS.split(",").map((value) => value.trim())]
     .filter((value): value is AiProviderName => value in registry);

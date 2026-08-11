@@ -12,13 +12,36 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   title: {
-    default: "Orliqo | Evidence-backed outreach",
+    default: "Orliqo | AI-powered B2B outreach",
     template: "%s | Orliqo",
   },
   description:
-    "Discover qualified businesses, review grounded outreach, and send safely through authorized providers.",
+    "Discover relevant prospects, personalize responsible outreach, manage replies, and understand campaign performance with Orliqo.",
   applicationName: "Orliqo",
+  creator: "Orliqo",
+  publisher: "Orliqo",
+  category: "business",
+  icons: {
+    icon: [{ url: "/brand/orliqo-mark.png", type: "image/png", sizes: "1254x1254" }],
+    shortcut: "/brand/orliqo-mark.png",
+    apple: [{ url: "/brand/orliqo-mark.png", sizes: "1254x1254", type: "image/png" }],
+  },
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    type: "website",
+    siteName: "Orliqo",
+    title: "Orliqo | AI-powered B2B outreach",
+    description: "Discover relevant prospects, create personalized outreach, manage replies, and understand performance.",
+    images: [{ url: "/brand/orliqo-mark.png", width: 1254, height: 1254, alt: "Orliqo" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Orliqo | AI-powered B2B outreach",
+    description: "Discover relevant prospects, create personalized outreach, manage replies, and understand performance.",
+    images: ["/brand/orliqo-mark.png"],
+  },
 };
 
 export const viewport: Viewport = {

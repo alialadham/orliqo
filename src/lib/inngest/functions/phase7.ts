@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { inngest } from "../client";
 
 function admin(): SupabaseClient {
@@ -18,7 +18,7 @@ export const aggregateAnalyticsFunction = inngest.createFunction(
     concurrency: { limit: 1 },
   },
   async ({ step }) => {
-    if (!getServerEnvironment().SUPABASE_SERVICE_ROLE_KEY)
+    if (!getRuntimeEnvironment().SUPABASE_SERVICE_ROLE_KEY)
       return { status: "not_configured" };
     const metricDate = new Date(Date.now() - 86_400_000)
       .toISOString()
@@ -52,7 +52,7 @@ export const replenishCampaignsFunction = inngest.createFunction(
     concurrency: { limit: 1 },
   },
   async ({ step }) => {
-    if (!getServerEnvironment().SUPABASE_SERVICE_ROLE_KEY)
+    if (!getRuntimeEnvironment().SUPABASE_SERVICE_ROLE_KEY)
       return { status: "not_configured" };
     const campaigns = await step.run("eligible-campaigns", async () => {
       const { data } = await admin()

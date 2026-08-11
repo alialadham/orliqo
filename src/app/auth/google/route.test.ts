@@ -4,10 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createServerSupabaseClient: vi.fn(),
+  checkRateLimit: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: mocks.createServerSupabaseClient,
+}));
+
+vi.mock("@/lib/security/rate-limit", () => ({
+  checkRateLimit: mocks.checkRateLimit,
 }));
 
 import { GET } from "@/app/auth/google/route";
@@ -28,6 +33,7 @@ describe("Google OAuth initiation", () => {
     vi.stubEnv("AI_PRIMARY_PROVIDER", "");
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.checkRateLimit.mockResolvedValue({ allowed: true, available: true, retryAfterSeconds: 0 });
   });
 
   afterEach(() => {

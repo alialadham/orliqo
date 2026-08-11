@@ -11,7 +11,7 @@ import type { WebsiteImportResult, WebsiteSuggestion } from "@/features/onboardi
 import { requirePermission } from "@/features/permissions/server";
 import { hasPermission } from "@/features/permissions/permissions";
 import { DEMO_WORKSPACES } from "@/features/demo/data";
-import { getServerEnvironment } from "@/lib/env";
+import { getApplicationEnvironment } from "@/lib/env";
 import { inngest } from "@/lib/inngest/client";
 import { bodyWithinLimit, csrfErrorResponse } from "@/lib/security/csrf";
 import { checkRateLimit } from "@/lib/security/rate-limit";
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  const csrfError = csrfErrorResponse(request, getApplicationEnvironment().APP_URL);
   if (csrfError) return csrfError;
   if (!bodyWithinLimit(request, 8 * 1024))
     return NextResponse.json(

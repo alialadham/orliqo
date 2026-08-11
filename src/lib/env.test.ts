@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 import {
   EnvironmentValidationError,
   parseServerEnvironment,
+  parseRuntimeEnvironment,
   parseSupabaseAuthEnvironment,
 } from "@/lib/env";
 
@@ -163,5 +164,15 @@ describe("runtime environment validation", () => {
         BILLING_PROVIDER_MODE: "live",
       }),
     ).toThrow(/DODO_LIVE_API_KEY/);
+  });
+
+  it("parses one feature without requiring unrelated providers", () => {
+    const environment = parseRuntimeEnvironment({
+      NODE_ENV: "production",
+      DEMO_MODE: "false",
+      BILLING_PROVIDER_MODE: "test",
+    });
+    expect(environment.BILLING_PROVIDER_MODE).toBe("test");
+    expect(environment.supabaseConfigured).toBe(false);
   });
 });

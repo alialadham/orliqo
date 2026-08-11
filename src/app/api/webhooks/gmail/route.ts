@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { inngest } from "@/lib/inngest/client";
 import { bodyWithinLimit } from "@/lib/security/csrf";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       { error: "Webhook payload is too large." },
       { status: 413 },
     );
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const suppliedToken =
     new URL(request.url).searchParams.get("token") ??
     request.headers.get("x-orliqo-webhook-token") ??

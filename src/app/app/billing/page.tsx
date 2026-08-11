@@ -3,14 +3,13 @@ import { StatePanel } from "@/components/feedback/state-panel";
 import { Badge } from "@/components/ui/badge";
 import { hasPermission } from "@/features/permissions/permissions";
 import { getWorkspaceContext } from "@/features/workspaces/data";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   cancelSubscriptionAction,
   openBillingPortalAction,
 } from "@/features/billing/actions";
 import { Button } from "@/components/ui/button";
-import { demoPhase3Store } from "@/features/demo/phase3-store";
 
 export default async function BillingPage({
   searchParams,
@@ -30,31 +29,8 @@ export default async function BillingPage({
     );
   const query = await searchParams;
   const interval = query.interval === "year" ? "year" : "month";
-  const environment = getServerEnvironment();
-  const billingState = context.isDemo
-    ? (() => {
-        const demoUsage = demoPhase3Store().usage.get(
-          context.activeWorkspace.id,
-        );
-        return {
-          subscription: {
-            status: "active",
-            current_period_end: null,
-            cancel_at_period_end: false,
-          },
-          usage: demoUsage
-            ? [
-                {
-                  metric: "ai_messages",
-                  used: demoUsage.used,
-                  reserved: demoUsage.reserved,
-                  limit_value: demoUsage.limit,
-                },
-              ]
-            : [],
-        };
-      })()
-    : await (async () => {
+  const environment = getRuntimeEnvironment();
+  const billingState = await (async () => {
         const supabase = await createServerSupabaseClient();
         const [subscription, usage] = await Promise.all([
           supabase

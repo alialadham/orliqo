@@ -9,19 +9,22 @@ import {
 } from "@/features/auth/demo-session-codec";
 import { DEMO_USER_ID, DEMO_WORKSPACE_ID } from "@/features/demo/data";
 import { resetDemoOnboarding } from "@/features/demo/phase2-store";
-import { getServerEnvironment } from "@/lib/env";
 
 export const DEMO_SESSION_COOKIE = "orliqo-demo-session";
 
 function sessionSecret(): string {
-  const environment = getServerEnvironment();
   return (
-    environment.DEMO_SESSION_SECRET ||
+    process.env.DEMO_SESSION_SECRET ||
     "orliqo-local-demo-session-secret-change-before-production"
   );
 }
 
+function demoAllowed(): boolean {
+  return process.env.NODE_ENV !== "production" && process.env.DEMO_MODE === "true";
+}
+
 async function writeDemoSession(session: DemoSession): Promise<void> {
+  if (!demoAllowed()) throw new Error("Internal demo sessions are disabled.");
   const cookieStore = await cookies();
   cookieStore.set(DEMO_SESSION_COOKIE, signDemoSessionValue(session, sessionSecret()), {
     httpOnly: true,
@@ -64,11 +67,13 @@ export async function createDemoOnboardingSession(input: {
 }
 
 export async function readDemoSession(): Promise<DemoSession | null> {
+  if (!demoAllowed()) return null;
   const cookieStore = await cookies();
   return verifyDemoSessionValue(cookieStore.get(DEMO_SESSION_COOKIE)?.value, sessionSecret());
 }
 
 export function readDemoSessionFromRequest(request: Request): DemoSession | null {
+  if (!demoAllowed()) return null;
   const cookie = request.headers.get("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${DEMO_SESSION_COOKIE}=`));
   return verifyDemoSessionValue(cookie ? decodeURIComponent(cookie.slice(DEMO_SESSION_COOKIE.length + 1)) : undefined, sessionSecret());
 }

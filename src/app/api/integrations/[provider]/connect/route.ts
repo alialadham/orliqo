@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/features/auth/session";
 import { beginOAuthIntegration } from "@/features/integrations/oauth-service";
 import { requirePermission } from "@/features/permissions/server";
-import { getServerEnvironment } from "@/lib/env";
+import { getApplicationEnvironment } from "@/lib/env";
 import { bodyWithinLimit, csrfErrorResponse } from "@/lib/security/csrf";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 
@@ -14,7 +14,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ provider: string }> },
 ) {
-  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  const csrfError = csrfErrorResponse(request, getApplicationEnvironment().APP_URL);
   if (csrfError) return csrfError;
   if (!bodyWithinLimit(request, 8 * 1024))
     return NextResponse.json(

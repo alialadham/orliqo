@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { fetchWithTimeout } from "@/lib/http";
 import {
   decryptCredential,
@@ -41,7 +41,7 @@ const tokenSchema = z.object({
 });
 
 function oauthConfiguration(provider: OAuthProvider) {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   if (provider === "outlook")
     return {
       clientId: environment.MICROSOFT_CLIENT_ID,
@@ -91,7 +91,7 @@ export async function beginOAuthIntegration(input: {
   actorId: string;
   redirectPath: string;
 }) {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   if (!allowlistedOAuthRedirect(input.redirectPath))
     throw new Error("OAuth redirect path is not allowed.");
   if (!environment.ENCRYPTION_KEY)
@@ -165,7 +165,7 @@ export async function completeOAuthIntegration(input: {
   actorId: string;
   expectedProvider: "google" | "microsoft";
 }) {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   if (!environment.ENCRYPTION_KEY)
     throw new Error("Integration encryption is not configured.");
   const client = privateClient();

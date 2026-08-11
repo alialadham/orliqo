@@ -4,14 +4,14 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import {
-  getSupabaseAuthEnvironment,
-  type SupabaseAuthEnvironment,
+  getSupabaseEnvironment,
+  type SupabaseEnvironment,
 } from "@/lib/env";
 import { fetchWithTimeout } from "@/lib/http";
 import type { Database } from "@/lib/supabase/database.types";
 
 type SupabaseClientEnvironment = Pick<
-  SupabaseAuthEnvironment,
+  SupabaseEnvironment,
   "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
 >;
 
@@ -19,7 +19,7 @@ export async function createServerSupabaseClient(
   configuredEnvironment?: SupabaseClientEnvironment,
   options: { requireCookieWrites?: boolean } = {},
 ) {
-  const environment = configuredEnvironment ?? getSupabaseAuthEnvironment();
+  const environment = configuredEnvironment ?? getSupabaseEnvironment();
 
   if (
     !environment.NEXT_PUBLIC_SUPABASE_URL ||

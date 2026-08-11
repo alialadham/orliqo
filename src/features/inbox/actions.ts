@@ -15,6 +15,7 @@ import { isEmailProvider } from "@/features/integrations/email-adapters";
 import { requirePermission } from "@/features/permissions/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { inngest } from "@/lib/inngest/client";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { INBOX_INTENTS, type InboxConversation } from "./types";
 
 export type InboxActionResult = { ok: boolean; message: string };
@@ -27,6 +28,22 @@ async function context(permission: "inbox:reply" | "message:send") {
   return {
     value,
     demo: (await readDemoSession())?.kind === "workspace",
+  };
+}
+
+async function inboxRateLimited(
+  workspaceId: string,
+  action: string,
+  limit: number,
+  windowMs: number,
+): Promise<InboxActionResult | null> {
+  const result = await checkRateLimit(`inbox:${action}:${workspaceId}`, limit, windowMs);
+  if (result.allowed) return null;
+  return {
+    ok: false,
+    message: result.available
+      ? "This action was requested too often. Wait a moment and try again."
+      : "Request protection is temporarily unavailable. Please try again shortly.",
   };
 }
 
@@ -242,6 +259,8 @@ export async function generateReplySuggestionAction(
   const action = await context("inbox:reply");
   if (!action)
     return { ok: false, message: "Reply generation is not permitted." };
+  const limited = await inboxRateLimited(action.value.activeWorkspace.id, "generate", 30, 60 * 60_000);
+  if (limited) return limited;
   const demoItem = demoConversation(
     action.value.activeWorkspace.id,
     conversationId,
@@ -658,6 +677,8 @@ export async function sendApprovedReplyAction(
 ): Promise<InboxActionResult> {
   const action = await context("message:send");
   if (!action) return { ok: false, message: "Sending is not permitted." };
+  const limited = await inboxRateLimited(action.value.activeWorkspace.id, "send", 120, 60_000);
+  if (limited) return limited;
   if (action.demo)
     return {
       ok: false,

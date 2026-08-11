@@ -15,7 +15,7 @@ import {
   normalizeResendInbound,
   normalizeSesInbound,
 } from "@/features/inbox/provider-inbound";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { bodyWithinLimit } from "@/lib/security/csrf";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -46,7 +46,7 @@ export async function POST(
       { status: 400 },
     );
   }
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const verified =
     provider === "resend"
       ? Boolean(

@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
     set: vi.fn(),
   },
   createServerClient: vi.fn(),
-  getSupabaseAuthEnvironment: vi.fn(),
+  getSupabaseEnvironment: vi.fn(),
   getServerEnvironment: vi.fn(),
 }));
 
@@ -19,7 +19,7 @@ vi.mock("@supabase/ssr", () => ({
 }));
 
 vi.mock("@/lib/env", () => ({
-  getSupabaseAuthEnvironment: mocks.getSupabaseAuthEnvironment,
+  getSupabaseEnvironment: mocks.getSupabaseEnvironment,
   getServerEnvironment: mocks.getServerEnvironment,
 }));
 
@@ -29,9 +29,7 @@ describe("server Supabase client", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createServerClient.mockReturnValue({ auth: {} });
-    mocks.getSupabaseAuthEnvironment.mockReturnValue({
-      APP_URL: "https://orliqo.example",
-      NEXT_PUBLIC_APP_URL: "https://orliqo.example",
+    mocks.getSupabaseEnvironment.mockReturnValue({
       NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable",
       supabaseConfigured: true,
@@ -64,7 +62,7 @@ describe("server Supabase client", () => {
   it("uses scoped Supabase validation by default", async () => {
     await createServerSupabaseClient();
 
-    expect(mocks.getSupabaseAuthEnvironment).toHaveBeenCalledOnce();
+    expect(mocks.getSupabaseEnvironment).toHaveBeenCalledOnce();
     expect(mocks.getServerEnvironment).not.toHaveBeenCalled();
     expect(mocks.createServerClient).toHaveBeenCalledWith(
       "https://project.supabase.co",
@@ -79,7 +77,7 @@ describe("server Supabase client", () => {
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "explicit-key",
     });
 
-    expect(mocks.getSupabaseAuthEnvironment).not.toHaveBeenCalled();
+    expect(mocks.getSupabaseEnvironment).not.toHaveBeenCalled();
     expect(mocks.createServerClient).toHaveBeenCalledWith(
       "https://explicit.supabase.co",
       "explicit-key",

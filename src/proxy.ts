@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { DEMO_SESSION_COOKIE } from "@/features/auth/demo-session";
 import { safeRedirectPath } from "@/lib/navigation";
 import {
   applySecurityHeaders,
@@ -26,7 +25,6 @@ export async function proxy(request: NextRequest) {
     return target;
   };
   const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
-  const hasDemoSession = request.cookies.has(DEMO_SESSION_COOKIE);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   let hasSupabaseUser = false;
@@ -48,7 +46,7 @@ export async function proxy(request: NextRequest) {
     hasSupabaseUser = Boolean(data.user);
   }
 
-  if (isProtected && !hasDemoSession && !hasSupabaseUser) {
+  if (isProtected && !hasSupabaseUser) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
@@ -56,6 +54,7 @@ export async function proxy(request: NextRequest) {
       "next",
       safeRedirectPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
     );
+    loginUrl.searchParams.set("error", "session_expired");
     return secure(NextResponse.redirect(loginUrl));
   }
 

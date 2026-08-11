@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureAuthenticatedUserWorkspace } from "@/features/auth/bootstrap";
 import {
   EnvironmentValidationError,
   getSupabaseAuthEnvironment,
@@ -48,13 +49,15 @@ export async function GET(request: Request) {
   const requestId = crypto.randomUUID();
   const code = requestUrl.searchParams.get("code");
   const next = safeRedirectPath(requestUrl.searchParams.get("next"));
+  const source = requestUrl.searchParams.get("source") === "register" ? "register" : "login";
+  const failurePath = `/${source}?error=oauth_callback_failed`;
   let activeStage: CallbackStage = "callback";
 
   if (!code) {
     callbackLog("error", requestId, "callback", {
       status: "missing_code",
     });
-    return callbackRedirect(requestUrl, "/login?error=oauth_callback_failed");
+    return callbackRedirect(requestUrl, failurePath);
   }
 
   try {
@@ -89,7 +92,7 @@ export async function GET(request: Request) {
     callbackLog("info", requestId, "exchange_code", {
       status: "started",
     });
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       callbackLog("error", requestId, "exchange_code", {
@@ -100,7 +103,7 @@ export async function GET(request: Request) {
       });
       return callbackRedirect(
         requestUrl,
-        "/login?error=oauth_callback_failed",
+        failurePath,
       );
     }
 
@@ -108,9 +111,12 @@ export async function GET(request: Request) {
       status: "succeeded",
     });
     activeStage = "workspace_bootstrap";
-    callbackLog("info", requestId, "workspace_bootstrap", {
-      status: "trigger_completed_or_existing_user",
-      mechanism: "on_auth_user_created database trigger",
+    const bootstrapped = data?.user
+      ? await ensureAuthenticatedUserWorkspace(data.user)
+      : false;
+    callbackLog(bootstrapped ? "info" : "error", requestId, "workspace_bootstrap", {
+      status: bootstrapped ? "succeeded" : "deferred_to_workspace_context",
+      mechanism: "idempotent database function",
     });
 
     return callbackRedirect(requestUrl, next);
@@ -123,6 +129,6 @@ export async function GET(request: Request) {
           : undefined,
       ...errorMetadata(error),
     });
-    return callbackRedirect(requestUrl, "/login?error=oauth_callback_failed");
+    return callbackRedirect(requestUrl, failurePath);
   }
 }

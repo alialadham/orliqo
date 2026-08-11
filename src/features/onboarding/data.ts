@@ -35,6 +35,7 @@ function mapIcp(row: Record<string, unknown>): IcpInput {
     keywords: textArray(row.keywords), excludedIndustries: textArray(row.excluded_industries),
     excludedCompanies: textArray(row.excluded_companies), minimumScore: Number(row.minimum_score ?? 60),
     requiredContactMethods: textArray(requirements.methods),
+    targetRoles: textArray(requirements.roles),
     audienceBreadth: row.audience_breadth === "narrow" || row.audience_breadth === "broad" ? row.audience_breadth : "balanced",
     isDefault: Boolean(row.is_default), archived: Boolean(row.archived_at),
   };

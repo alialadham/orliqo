@@ -1,13 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Info } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { GoogleIcon, MicrosoftIcon } from "@/components/auth/provider-icons";
+import { GoogleIcon } from "@/components/auth/provider-icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,18 +25,12 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  loginAction,
-  oauthLoginAction,
-  useDemoWorkspaceAction,
-} from "@/features/auth/actions";
+import { loginAction } from "@/features/auth/actions";
 import {
   loginSchema,
   type AuthActionResult,
   type LoginInput,
 } from "@/features/auth/schemas";
-
-const microsoftAction = oauthLoginAction.bind(null, "azure");
 
 export function LoginForm({
   next,
@@ -179,17 +173,6 @@ export function LoginForm({
             Continue with Google
           </Button>
         </form>
-        <form action={microsoftAction}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="lg"
-            className="bg-card h-12 w-full text-base"
-          >
-            <MicrosoftIcon data-icon="inline-start" className="size-5" />
-            Continue with Microsoft
-          </Button>
-        </form>
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
         No account yet? Google will create one securely and continue setup.
@@ -205,24 +188,6 @@ export function LoginForm({
         </Link>
       </p>
 
-      <div className="mt-8 border-t pt-5">
-        <form action={useDemoWorkspaceAction}>
-          <div className="border-primary/25 bg-primary/[0.04] flex min-h-12 flex-col items-start gap-2 rounded-lg border px-3 py-2.5 text-sm sm:flex-row sm:items-center">
-            <Info className="text-primary size-5 shrink-0" aria-hidden="true" />
-            <span className="text-muted-foreground flex-1">
-              Demo mode available - no messages are sent.
-            </span>
-            <Button
-              type="submit"
-              variant="link"
-              size="sm"
-              className="h-auto px-0 font-semibold"
-            >
-              Use demo workspace
-            </Button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }

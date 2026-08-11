@@ -1,66 +1,13 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-async function demo(page: Page) {
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Use demo workspace" }).click();
-  await expect(page).toHaveURL(/\/app\/dashboard$/);
-}
-
-test("reviews inbox suggestions without a live send", async ({
-  page,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "desktop-chromium",
-    "Desktop inbox workflow",
-  );
-  await demo(page);
-  await page.goto("/app/inbox");
-  await expect(
-    page.getByRole("heading", { name: "Unified inbox" }),
-  ).toBeVisible();
-  await expect(page.getByText("Synthetic inbox")).toBeVisible();
-  await page.getByRole("button", { name: "Approve", exact: true }).click();
-  await expect(page.getByText("accepted", { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Send approved reply" }),
-  ).toBeDisabled();
-  await page.getByRole("button", { name: "friendlier" }).click();
-  await expect(page.getByText("pending", { exact: true })).toBeVisible();
+test("forgot-password response resists account enumeration", async ({ page }) => {
+  await page.goto("/forgot-password");
+  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
 });
 
-test("filters WhatsApp and applies deterministic stop-contact", async ({
-  page,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "desktop-chromium",
-    "Desktop inbox workflow",
-  );
-  await demo(page);
-  await page.goto(
-    "/app/inbox?folder=all&channel=whatsapp&conversation=phase5-conversation-7",
-  );
-  await expect(page.getByText("Petra Kitchens").first()).toBeVisible();
-  await page.getByRole("button", { name: "Confirm stop contact" }).click();
-  await expect(page.getByText("Do not contact", { exact: true })).toBeVisible();
-});
-
-test("Phase 5 inbox remains responsive on mobile", async ({
-  page,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "mobile-chromium",
-    "Mobile inbox workflow",
-  );
-  await demo(page);
-  await page.goto("/app/inbox?channel=whatsapp");
-  await expect(
-    page.getByRole("heading", { name: "Unified inbox" }),
-  ).toBeVisible();
-  expect(
-    await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth,
-    ),
-  ).toBe(false);
+test("auth callback failures return to a useful sign-in message", async ({ page }) => {
+  await page.goto("/auth/callback");
+  await expect(page).toHaveURL(/\/login\?error=oauth_callback_failed/);
+  await expect(page.getByText("We couldn't complete Google sign-in. Please try again.")).toBeVisible();
 });

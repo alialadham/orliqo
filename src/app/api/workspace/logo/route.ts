@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { readDemoSession } from "@/features/auth/demo-session";
 import { requirePermission } from "@/features/permissions/server";
-import { getServerEnvironment } from "@/lib/env";
+import { getApplicationEnvironment } from "@/lib/env";
 import { bodyWithinLimit, csrfErrorResponse } from "@/lib/security/csrf";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -11,8 +11,19 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 const allowed = new Set(["image/png", "image/jpeg", "image/webp"]);
 const maxSize = 2 * 1024 * 1024;
 
+async function hasValidImageSignature(file: File): Promise<boolean> {
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (file.type === "image/png")
+    return [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => bytes[index] === byte);
+  if (file.type === "image/jpeg")
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  return file.type === "image/webp" &&
+    new TextDecoder().decode(bytes.slice(0, 4)) === "RIFF" &&
+    new TextDecoder().decode(bytes.slice(8, 12)) === "WEBP";
+}
+
 export async function POST(request: Request) {
-  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  const csrfError = csrfErrorResponse(request, getApplicationEnvironment().APP_URL);
   if (csrfError) return csrfError;
   if (!bodyWithinLimit(request, maxSize + 256 * 1024))
     return NextResponse.json({ error: "Logo upload is too large." }, { status: 413 });
@@ -37,6 +48,8 @@ export async function POST(request: Request) {
     );
   const form = await request.formData(); const file = form.get("file");
   if (!(file instanceof File) || !allowed.has(file.type) || file.size < 1 || file.size > maxSize) return NextResponse.json({ error: "Use a PNG, JPG, or WebP logo up to 2 MB." }, { status: 400 });
+  if (!(await hasValidImageSignature(file)))
+    return NextResponse.json({ error: "The logo content does not match its file type." }, { status: 400 });
   const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
   const path = `${context.activeWorkspace.id}/logos/${randomUUID()}.${extension}`;
   const session = await readDemoSession();
@@ -51,7 +64,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  const csrfError = csrfErrorResponse(request, getApplicationEnvironment().APP_URL);
   if (csrfError) return csrfError;
   if (!bodyWithinLimit(request, 8 * 1024))
     return NextResponse.json({ error: "Logo request is too large." }, { status: 413 });

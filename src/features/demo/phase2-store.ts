@@ -51,7 +51,7 @@ const defaultIcp: IcpInput = {
   excludedIndustries: ["Gambling"],
   excludedCompanies: [],
   minimumScore: 65,
-  requiredContactMethods: ["email"],
+  requiredContactMethods: ["email"], targetRoles: [],
   audienceBreadth: "balanced",
   isDefault: true,
   archived: false,

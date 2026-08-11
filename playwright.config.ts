@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const qaOrigin = "http://127.0.0.1:4173";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -9,7 +11,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: "html",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: qaOrigin,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
@@ -22,9 +24,9 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "pnpm dev",
-    url: "http://127.0.0.1:3000",
-    reuseExistingServer: !process.env.CI,
+    command: "pnpm exec next dev --hostname 127.0.0.1 -p 4173",
+    url: qaOrigin,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

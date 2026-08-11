@@ -2,14 +2,10 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import {
-  clearDemoSession,
-  createDemoOnboardingSession,
-  createDemoWorkspaceSession,
-  setDemoActiveWorkspace,
-} from "@/features/auth/demo-session";
+import { ensureAuthenticatedUserWorkspace } from "@/features/auth/bootstrap";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -22,9 +18,12 @@ import {
   type ResetPasswordInput,
 } from "@/features/auth/schemas";
 import { getCurrentUser } from "@/features/auth/session";
-import { DEMO_WORKSPACES } from "@/features/demo/data";
 import { getWorkspaceContext, setActiveWorkspaceCookie } from "@/features/workspaces/data";
-import { getServerEnvironment } from "@/lib/env";
+import {
+  EnvironmentValidationError,
+  getSupabaseAuthEnvironment,
+  getSupabaseEnvironment,
+} from "@/lib/env";
 import { safeRedirectPath } from "@/lib/navigation";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -35,18 +34,48 @@ function authBucket(kind: string, identifier: string): string {
     .digest("base64url")}`;
 }
 
-async function authRateLimited(
+async function authRateLimit(
   kind: string,
   identifier: string,
   limit: number,
   windowMs: number,
-): Promise<boolean> {
-  const result = await checkRateLimit(
-    authBucket(kind, identifier),
-    limit,
-    windowMs,
+): Promise<{ available: boolean; limited: boolean }> {
+  const requestHeaders = await headers();
+  const address =
+    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    requestHeaders.get("x-real-ip") ||
+    "unknown";
+  const [account, network] = await Promise.all([
+    checkRateLimit(authBucket(kind, identifier), limit, windowMs),
+    checkRateLimit(authBucket(kind, `network:${address}`), limit * 5, windowMs),
+  ]);
+  return {
+    available: account.available && network.available,
+    limited: !account.allowed || !network.allowed,
+  };
+}
+
+function logAuthFailure(
+  action: string,
+  stage: string,
+  error: unknown,
+): void {
+  const details =
+    typeof error === "object" && error !== null
+      ? (error as { code?: unknown; status?: unknown })
+      : null;
+  console.error(
+    JSON.stringify({
+      event: "authentication",
+      action,
+      stage,
+      status: "failed",
+      errorName: error instanceof Error ? error.name : typeof error,
+      errorCode: typeof details?.code === "string" ? details.code : undefined,
+      httpStatus:
+        typeof details?.status === "number" ? details.status : undefined,
+    }),
   );
-  return !result.allowed;
 }
 
 function invalidResult(error: { flatten: () => { fieldErrors: Record<string, string[]> } }): AuthActionResult {
@@ -60,42 +89,45 @@ function invalidResult(error: { flatten: () => { fieldErrors: Record<string, str
 export async function loginAction(input: LoginInput): Promise<AuthActionResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return invalidResult(parsed.error);
-  if (await authRateLimited("login", parsed.data.email, 10, 15 * 60_000))
+  const rateLimit = await authRateLimit(
+    "login",
+    parsed.data.email,
+    10,
+    15 * 60_000,
+  );
+  if (!rateLimit.available)
+    return {
+      ok: false,
+      message: "Account sign-in is temporarily unavailable. Please try again later.",
+    };
+  if (rateLimit.limited)
     return {
       ok: false,
       message: "Too many sign-in attempts. Wait 15 minutes and try again.",
     };
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    return {
-      ok: false,
-      message: "Account sign-in is not configured. Use the demo workspace.",
-    };
-  }
-
   try {
-    const supabase = await createServerSupabaseClient(
-      {
-        NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: supabaseKey,
-      },
-      { requireCookieWrites: true },
-    );
-    const { error } = await supabase.auth.signInWithPassword({
+    const environment = getSupabaseEnvironment();
+    const supabase = await createServerSupabaseClient(environment, {
+      requireCookieWrites: true,
+    });
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
     });
 
     if (error)
       return { ok: false, message: "The email or password is incorrect." };
+    if (data.user) await ensureAuthenticatedUserWorkspace(data.user);
     return { ok: true, redirectTo: safeRedirectPath(parsed.data.next) };
-  } catch {
+  } catch (error) {
+    logAuthFailure("login", "sign_in", error);
     return {
       ok: false,
       message:
-        "We could not reach the sign-in service. Check your connection and try again.",
+        error instanceof EnvironmentValidationError
+          ? "Account sign-in is temporarily unavailable. Please try again later."
+          : "We could not reach the sign-in service. Check your connection and try again.",
     };
   }
 }
@@ -103,72 +135,97 @@ export async function loginAction(input: LoginInput): Promise<AuthActionResult> 
 export async function registerAction(input: RegistrationInput): Promise<AuthActionResult> {
   const parsed = registrationSchema.safeParse(input);
   if (!parsed.success) return invalidResult(parsed.error);
-  if (await authRateLimited("register", parsed.data.email, 5, 60 * 60_000))
+  const rateLimit = await authRateLimit(
+    "register",
+    parsed.data.email,
+    5,
+    60 * 60_000,
+  );
+  if (!rateLimit.available)
+    return {
+      ok: false,
+      message: "Account creation is temporarily unavailable. Please try again later.",
+    };
+  if (rateLimit.limited)
     return {
       ok: false,
       message: "Too many registration attempts. Try again later.",
     };
 
-  const environment = getServerEnvironment();
-  if (!environment.supabaseConfigured && environment.demoMode) {
-    await createDemoOnboardingSession(parsed.data);
-    return { ok: true, redirectTo: "/onboarding?registered=1" };
-  }
-
-  const supabase = await createServerSupabaseClient();
-  const appUrl = environment.APP_URL || "http://127.0.0.1:3000";
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${appUrl}/auth/callback?next=/onboarding`,
-      data: {
-        full_name: parsed.data.fullName,
-        company_name: parsed.data.companyName,
-        country: parsed.data.country,
-        team_size: parsed.data.teamSize,
-        terms_accepted_at: new Date().toISOString(),
-        marketing_consent: parsed.data.marketingConsent,
+  try {
+    const environment = getSupabaseAuthEnvironment();
+    const supabase = await createServerSupabaseClient(environment, {
+      requireCookieWrites: true,
+    });
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: {
+        emailRedirectTo: `${environment.APP_URL}/auth/callback?next=/onboarding`,
+        data: {
+          full_name: parsed.data.fullName,
+          terms_accepted_at: new Date().toISOString(),
+          terms_version: "2026-08-11",
+          privacy_version: "2026-08-11",
+          marketing_consent: parsed.data.marketingConsent,
+        },
       },
-    },
-  });
+    });
 
-  if (error) return { ok: false, message: error.message };
+    if (error) {
+      logAuthFailure("register", "sign_up_provider", error);
+      return {
+        ok: false,
+        message:
+          error.code === "over_email_send_rate_limit"
+            ? "Confirmation email limit reached. Wait a few minutes and try again."
+            : "We could not create the account. Check your details and try again.",
+      };
+    }
 
-  if (!data.session) {
+    if (!data.session) {
+      return {
+        ok: true,
+        message:
+          "Check your email to confirm your address, then continue setup.",
+      };
+    }
+
+    if (data.user) await ensureAuthenticatedUserWorkspace(data.user);
+    return { ok: true, redirectTo: "/onboarding" };
+  } catch (error) {
+    logAuthFailure("register", "sign_up", error);
     return {
-      ok: true,
-      message: "Check your email to verify your address, then continue onboarding.",
+      ok: false,
+      message: "We could not create the account right now. Please try again.",
     };
   }
-
-  return { ok: true, redirectTo: "/onboarding" };
 }
 
 export async function forgotPasswordAction(input: ForgotPasswordInput): Promise<AuthActionResult> {
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) return invalidResult(parsed.error);
-  if (
-    await authRateLimited(
-      "forgot-password",
-      parsed.data.email,
-      5,
-      60 * 60_000,
-    )
-  )
+  const rateLimit = await authRateLimit(
+    "forgot-password",
+    parsed.data.email,
+    5,
+    60 * 60_000,
+  );
+  if (!rateLimit.available || rateLimit.limited)
     return {
       ok: true,
       message:
         "If an account exists for that email, a secure reset link has been sent.",
     };
 
-  const environment = getServerEnvironment();
-  if (environment.supabaseConfigured) {
-    const supabase = await createServerSupabaseClient();
-    const appUrl = environment.APP_URL || "http://127.0.0.1:3000";
+  try {
+    const environment = getSupabaseAuthEnvironment();
+    const supabase = await createServerSupabaseClient(environment);
     await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
+      redirectTo: `${environment.APP_URL}/auth/callback?next=/reset-password`,
     });
+  } catch (error) {
+    logAuthFailure("forgot_password", "request", error);
   }
 
   return {
@@ -180,62 +237,63 @@ export async function forgotPasswordAction(input: ForgotPasswordInput): Promise<
 export async function resetPasswordAction(input: ResetPasswordInput): Promise<AuthActionResult> {
   const parsed = resetPasswordSchema.safeParse(input);
   if (!parsed.success) return invalidResult(parsed.error);
-  if (
-    await authRateLimited(
-      "reset-password",
-      (await getCurrentUser())?.id ?? "anonymous",
-      5,
-      60 * 60_000,
-    )
-  )
+  const rateLimit = await authRateLimit(
+    "reset-password",
+    (await getCurrentUser())?.id ?? "anonymous",
+    5,
+    60 * 60_000,
+  );
+  if (!rateLimit.available)
+    return {
+      ok: false,
+      message: "Password reset is temporarily unavailable. Please try again later.",
+    };
+  if (rateLimit.limited)
     return {
       ok: false,
       message: "Too many password reset attempts. Try again later.",
     };
 
-  const environment = getServerEnvironment();
-  if (!environment.supabaseConfigured) {
-    return { ok: false, message: "Password recovery requires a configured Supabase project." };
+  try {
+    const environment = getSupabaseEnvironment();
+    const supabase = await createServerSupabaseClient(environment, {
+      requireCookieWrites: true,
+    });
+    const { error } = await supabase.auth.updateUser({
+      password: parsed.data.password,
+    });
+    if (error)
+      return {
+        ok: false,
+        message: "The reset link is invalid or expired. Request a new one.",
+      };
+    return {
+      ok: true,
+      message: "Password updated. You can now sign in.",
+      redirectTo: "/login",
+    };
+  } catch (error) {
+    logAuthFailure("reset_password", "update", error);
+    return { ok: false, message: "We could not update the password. Try again." };
   }
-
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { ok: false, message: error.message };
-  return { ok: true, message: "Password updated. You can now sign in.", redirectTo: "/login" };
-}
-
-export async function useDemoWorkspaceAction(): Promise<void> {
-  const environment = getServerEnvironment();
-  if (!environment.demoMode) redirect("/login?error=demo_disabled");
-  await createDemoWorkspaceSession();
-  redirect("/app/dashboard");
-}
-
-export async function oauthLoginAction(provider: "azure"): Promise<void> {
-  const environment = getServerEnvironment();
-  if (!environment.supabaseConfigured) redirect("/login?error=provider_not_configured");
-
-  const supabase = await createServerSupabaseClient();
-  const appUrl = environment.APP_URL || "http://127.0.0.1:3000";
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: `${appUrl}/auth/callback?next=/app/dashboard`,
-      scopes: "email openid profile offline_access",
-    },
-  });
-
-  if (error || !data.url) redirect("/login?error=oauth_start_failed");
-  redirect(data.url);
 }
 
 export async function logoutAction(): Promise<void> {
-  await clearDemoSession();
-  const environment = getServerEnvironment();
-  if (environment.supabaseConfigured) {
-    const supabase = await createServerSupabaseClient();
+  try {
+    const supabase = await createServerSupabaseClient(undefined, {
+      requireCookieWrites: true,
+    });
     await supabase.auth.signOut();
+  } catch (error) {
+    logAuthFailure("logout", "sign_out", error);
   }
+  const cookieStore = await cookies();
+  for (const cookie of cookieStore.getAll()) {
+    if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token"))
+      cookieStore.delete(cookie.name);
+  }
+  cookieStore.delete("orliqo-active-workspace");
+  cookieStore.delete("orliqo-demo-session");
   redirect("/login");
 }
 
@@ -246,14 +304,10 @@ export async function switchWorkspaceAction(formData: FormData): Promise<void> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  if (user.provider === "demo") {
-    if (!DEMO_WORKSPACES.some((workspace) => workspace.id === workspaceId)) return;
-    await setDemoActiveWorkspace(workspaceId);
-  } else {
-    const context = await getWorkspaceContext();
-    if (!context?.workspaces.some((workspace) => workspace.id === workspaceId)) return;
-    await setActiveWorkspaceCookie(workspaceId);
-  }
+  const context = await getWorkspaceContext();
+  if (!context?.workspaces.some((workspace) => workspace.id === workspaceId))
+    return;
+  await setActiveWorkspaceCookie(workspaceId);
 
   revalidatePath("/app", "layout");
   redirect("/app/dashboard");

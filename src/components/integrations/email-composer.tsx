@@ -58,7 +58,7 @@ export function EmailComposer({
             id="from"
             name="from"
             type="email"
-            defaultValue="hello@northstar.demo"
+            placeholder="team@yourbusiness.com"
             required
           />
         </div>
@@ -68,7 +68,7 @@ export function EmailComposer({
             id="to"
             name="to"
             type="email"
-            defaultValue="recipient@example.com"
+            placeholder="recipient@company.com"
             required
           />
         </div>
@@ -77,7 +77,7 @@ export function EmailComposer({
           <Input
             id="subject"
             name="subject"
-            defaultValue="Your requested website audit"
+            placeholder="Provider connection test"
             required
           />
         </div>
@@ -88,7 +88,7 @@ export function EmailComposer({
           id="body"
           name="body"
           rows={5}
-          defaultValue="Hello — this provider test validates configuration, recipient gates, and delivery mode."
+          placeholder="Write a short message for this provider test."
           required
         />
       </div>
@@ -98,7 +98,7 @@ export function EmailComposer({
           <Input
             id="signature"
             name="signature"
-            defaultValue="Northstar Growth"
+            placeholder="Your name and business"
           />
         </div>
         <div className="grid gap-1.5">

@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+import { ensureAuthenticatedUserWorkspace } from "@/features/auth/bootstrap";
 import { safeRedirectPath } from "@/lib/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -13,12 +14,18 @@ export async function GET(request: Request) {
   const next = safeRedirectPath(requestUrl.searchParams.get("next"));
 
   if (!tokenHash || !rawType || !allowedTypes.has(rawType as EmailOtpType)) {
-    return NextResponse.redirect(new URL("/login?error=oauth_callback_failed", requestUrl.origin));
+    return NextResponse.redirect(new URL("/login?error=confirmation_failed", requestUrl.origin));
   }
 
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: rawType as EmailOtpType });
-  if (error) return NextResponse.redirect(new URL("/login?error=oauth_callback_failed", requestUrl.origin));
+  try {
+    const supabase = await createServerSupabaseClient(undefined, { requireCookieWrites: true });
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: rawType as EmailOtpType });
+    if (error) return NextResponse.redirect(new URL("/login?error=confirmation_failed", requestUrl.origin));
+    if (data.user) await ensureAuthenticatedUserWorkspace(data.user);
+  } catch (error) {
+    console.error(JSON.stringify({ event: "auth_confirmation", status: "failed", errorName: error instanceof Error ? error.name : typeof error }));
+    return NextResponse.redirect(new URL("/login?error=confirmation_failed", requestUrl.origin));
+  }
 
   return NextResponse.redirect(new URL(next, requestUrl.origin));
 }

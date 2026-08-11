@@ -9,7 +9,7 @@ import {
   verifyWhatsAppSignature,
   whatsappWebhookEventId,
 } from "@/features/integrations/whatsapp";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { bodyWithinLimit } from "@/lib/security/csrf";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { persistInboundMessage } from "@/features/inbox/inbound";
@@ -17,7 +17,7 @@ import { persistInboundMessage } from "@/features/inbox/inbound";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const query = new URL(request.url).searchParams;
   const mode = query.get("hub.mode");
   const token = query.get("hub.verify_token");
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       { error: "Webhook payload is too large." },
       { status: 413 },
     );
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   if (!environment.META_APP_SECRET)
     return NextResponse.json(
       { error: "WhatsApp webhook signatures are not configured." },

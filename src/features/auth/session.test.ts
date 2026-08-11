@@ -59,14 +59,13 @@ describe("getCurrentUser environment isolation", () => {
     expect(mocks.readDemoSession).not.toHaveBeenCalled();
     expect(mocks.createServerSupabaseClient).toHaveBeenCalledWith(
       expect.objectContaining({
-        APP_URL: "https://orliqo.example",
         NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable",
       }),
     );
   });
 
-  it("preserves demo sessions without creating a Supabase client", async () => {
+  it("does not accept a demo session as authentication", async () => {
     vi.stubEnv("DEMO_MODE", "true");
     mocks.readDemoSession.mockResolvedValue({
       kind: "workspace",
@@ -75,12 +74,13 @@ describe("getCurrentUser environment isolation", () => {
       fullName: "Demo User",
     });
 
-    await expect(getCurrentUser()).resolves.toMatchObject({
-      provider: "demo",
-      email: "demo@example.com",
-      demoKind: "workspace",
+    mocks.createServerSupabaseClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: new Error("No session") }) },
     });
-    expect(mocks.createServerSupabaseClient).not.toHaveBeenCalled();
+
+    await expect(getCurrentUser()).resolves.toBeNull();
+    expect(mocks.readDemoSession).not.toHaveBeenCalled();
+    expect(mocks.createServerSupabaseClient).toHaveBeenCalledOnce();
   });
 
   it("returns null safely when scoped Supabase configuration is missing", async () => {

@@ -88,7 +88,6 @@ export function InboxView({
   folder,
   channel,
   canReply,
-  demo,
 }: {
   conversations: InboxConversation[];
   selected: InboxConversation | null;
@@ -96,15 +95,11 @@ export function InboxView({
   folder: InboxFolder;
   channel: InboxChannel | "all";
   canReply: boolean;
-  demo: boolean;
 }) {
   return (
     <div className="mx-auto max-w-[1600px] space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="mb-2 flex gap-2">
-            {demo ? <Badge variant="secondary">Synthetic inbox</Badge> : null}
-          </div>
           <h1 className="text-3xl font-bold">Unified inbox</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Review inbound conversations, intent evidence, lead context, and
@@ -448,7 +443,6 @@ export function InboxView({
                               className="w-full"
                               disabled={
                                 !canReply ||
-                                demo ||
                                 selected.replySuggestion.status !== "accepted"
                               }
                             >
@@ -461,8 +455,7 @@ export function InboxView({
                     ) : null}
                     <p className="text-muted-foreground mt-2 text-xs">
                       No reply is sent automatically. Every generated version
-                      remains suggestion-only until explicitly approved. Demo
-                      mode never sends.
+                      remains suggestion-only until explicitly approved.
                     </p>
                   </div>
                 </div>

@@ -3,9 +3,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
-import { readDemoSession } from "@/features/auth/demo-session";
+import { ensureAuthenticatedUserWorkspace } from "@/features/auth/bootstrap";
 import { getCurrentUser } from "@/features/auth/session";
-import { DEMO_PROFILE, DEMO_WORKSPACES } from "@/features/demo/data";
 import type { WorkspaceRole } from "@/features/permissions/permissions";
 import type {
   WorkspaceContext,
@@ -28,33 +27,8 @@ export const getWorkspaceContext = cache(
     const user = await getCurrentUser();
     if (!user) return null;
 
-    if (user.provider === "demo") {
-      const session = await readDemoSession();
-      if (!session || session.kind !== "workspace") return null;
-
-      const activeWorkspace =
-        DEMO_WORKSPACES.find(
-          (workspace) => workspace.id === session.activeWorkspaceId,
-        ) ?? DEMO_WORKSPACES[0];
-
-      if (!activeWorkspace) return null;
-
-      return {
-        user: {
-          id: DEMO_PROFILE.id,
-          email: DEMO_PROFILE.email,
-          fullName: DEMO_PROFILE.fullName,
-          initials: DEMO_PROFILE.initials,
-        },
-        activeWorkspace,
-        workspaces: DEMO_WORKSPACES,
-        isDemo: true,
-        onboardingComplete: true,
-      };
-    }
-
     const supabase = await createServerSupabaseClient();
-    const [profileResult, membershipResult] = await Promise.all([
+    let [profileResult, membershipResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, full_name")
@@ -66,6 +40,24 @@ export const getWorkspaceContext = cache(
         .eq("user_id", user.id)
         .eq("status", "active"),
     ]);
+
+    if (!membershipResult.error && !membershipResult.data?.length) {
+      const repaired = await ensureAuthenticatedUserWorkspace(user);
+      if (repaired) {
+        [profileResult, membershipResult] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, full_name")
+            .eq("id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("workspace_members")
+            .select("workspace_id, role, status")
+            .eq("user_id", user.id)
+            .eq("status", "active"),
+        ]);
+      }
+    }
 
     if (membershipResult.error || !membershipResult.data?.length) return null;
 

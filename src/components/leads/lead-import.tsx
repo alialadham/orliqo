@@ -39,7 +39,7 @@ export function LeadImport() {
   }
 
   function sample() {
-    const csv = "Business Name,Industry,Country,City,Website,Email,Phone,Score,Tags\nCedar Demo Studio,Photography,Jordan,Amman,https://cedar.example.test,hello@cedar.example.invalid,+962790001111,74,Sample;Import";
+    const csv = "Business Name,Industry,Country,City,Website,Email,Phone,Score,Tags\nExample Company,Manufacturing,Jordan,Amman,https://example.com,contact@example.com,+962790000000,74,Example;Import";
     const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); link.download = "orliqo-lead-import-sample.csv"; link.click(); URL.revokeObjectURL(link.href);
   }
 

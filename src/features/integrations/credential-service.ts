@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   decryptCredential,
@@ -31,7 +31,7 @@ export async function readIntegrationCredential<
   integrationId: string,
   workspaceId: string,
 ): Promise<{ id: string; payload: T } | null> {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   if (!environment.ENCRYPTION_KEY || !environment.SUPABASE_SERVICE_ROLE_KEY)
     return null;
   const client = createAdminSupabaseClient() as unknown as SupabaseClient;
@@ -77,7 +77,7 @@ export async function rotateIntegrationCredential(
   workspaceId: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   if (!environment.ENCRYPTION_KEY)
     throw new Error("Integration encryption is not configured.");
   const encrypted = encryptCredential(

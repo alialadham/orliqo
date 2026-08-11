@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { getServerEnvironment } from "@/lib/env";
+import { getSupabaseAdminEnvironment } from "@/lib/env";
 
 export async function writeAuditLog(input: {
   workspaceId: string;
@@ -12,9 +12,8 @@ export async function writeAuditLog(input: {
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
 }): Promise<void> {
-  const environment = getServerEnvironment();
-  if (environment.demoMode || !environment.SUPABASE_SERVICE_ROLE_KEY) return;
-  const admin = createAdminSupabaseClient();
+  const environment = getSupabaseAdminEnvironment();
+  const admin = createAdminSupabaseClient(environment);
   const { error } = await admin.from("audit_logs").insert({
     workspace_id: input.workspaceId,
     actor_id: input.actorId,

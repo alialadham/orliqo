@@ -39,7 +39,7 @@ export function MobileNavigation({ context, notificationCount }: { context: Work
             <div className="flex-1 overflow-y-auto px-4 pt-5 pb-24">
               <Link href="/app/settings/workspace" onClick={() => setOpen(false)} className="flex min-h-20 items-center gap-3 rounded-xl border bg-card px-4">
                 <span className="grid size-12 place-items-center rounded-xl bg-primary/10"><Building2 className="size-5 text-primary" /></span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-lg font-semibold">{context.activeWorkspace.name}</span><span className="block text-sm text-muted-foreground capitalize">{context.activeWorkspace.plan}{context.isDemo ? " demo" : ""}</span></span><ChevronRight className="size-5" />
+                <span className="min-w-0 flex-1"><span className="block truncate text-lg font-semibold">{context.activeWorkspace.name}</span><span className="block text-sm text-muted-foreground capitalize">{context.activeWorkspace.plan}</span></span><ChevronRight className="size-5" />
               </Link>
               <Link href="/app/billing" onClick={() => setOpen(false)} className="mt-4 block rounded-xl border bg-card p-4">
                 <span className="flex items-center gap-3 text-base font-semibold"><Coins className="size-6" />{context.activeWorkspace.credits} credits remaining</span>

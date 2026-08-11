@@ -20,7 +20,7 @@ import type { LeadInput } from "@/features/leads/schemas";
 import { requirePermission } from "@/features/permissions/server";
 import { hasPermission } from "@/features/permissions/permissions";
 import { DEMO_WORKSPACES } from "@/features/demo/data";
-import { getServerEnvironment } from "@/lib/env";
+import { getApplicationEnvironment } from "@/lib/env";
 import { bodyWithinLimit, csrfErrorResponse } from "@/lib/security/csrf";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import type { Json } from "@/lib/supabase/database.types";
@@ -109,7 +109,7 @@ async function importContext(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  const csrfError = csrfErrorResponse(request, getApplicationEnvironment().APP_URL);
   if (csrfError) return csrfError;
   if (!bodyWithinLimit(request, MAX_SIZE + 512 * 1024))
     return NextResponse.json(
@@ -161,7 +161,18 @@ export async function POST(request: Request) {
       { error: "Only CSV and XLSX files are supported." },
       { status: 400 },
     );
-  const parsed = await parseLeadFile(await file.arrayBuffer(), extension);
+  const bytes = await file.arrayBuffer();
+  const signature = new Uint8Array(bytes.slice(0, 4));
+  if (
+    (extension === "xlsx" &&
+      !(signature[0] === 0x50 && signature[1] === 0x4b && signature[2] === 0x03 && signature[3] === 0x04)) ||
+    (extension === "csv" && signature.some((byte) => byte === 0))
+  )
+    return NextResponse.json(
+      { error: "The file content does not match its CSV or XLSX extension." },
+      { status: 400 },
+    );
+  const parsed = await parseLeadFile(bytes, extension);
   if (!parsed.headers.length || !parsed.rows.length)
     return NextResponse.json(
       { error: "The file has no importable rows." },
@@ -330,7 +341,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const csrfError = csrfErrorResponse(request, getServerEnvironment().APP_URL);
+  const csrfError = csrfErrorResponse(request, getApplicationEnvironment().APP_URL);
   if (csrfError) return csrfError;
   if (!bodyWithinLimit(request, 64 * 1024))
     return NextResponse.json(
