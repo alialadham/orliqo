@@ -45,6 +45,8 @@ describe("authenticated Supabase environment isolation", () => {
     expect(migration).toMatch(/false,\s+1/);
     expect(serviceBoundary).toContain("ensure_auth_user_workspace_service");
     expect(serviceBoundary).toContain("consume_rate_limit_service");
+    expect(serviceBoundary).toContain("security invoker");
+    expect(serviceBoundary).not.toContain("security definer");
     expect(serviceBoundary).toContain("from public, anon, authenticated");
     expect(serviceBoundary).toContain("to service_role");
   });

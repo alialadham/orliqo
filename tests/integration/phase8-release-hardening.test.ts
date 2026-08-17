@@ -6,6 +6,9 @@ const read = (path: string) => readFileSync(path, "utf8");
 const migration = read(
   "supabase/migrations/20260724090000_phase8_release_hardening.sql",
 );
+const rateLimitRepair = read(
+  "supabase/migrations/20260811124721_fix_rate_limit_parameter_ambiguity.sql",
+);
 
 describe("Phase 8 release hardening", () => {
   it("ships a nonce CSP and production transport headers", () => {
@@ -45,6 +48,9 @@ describe("Phase 8 release hardening", () => {
     expect(limiter).toContain("consume_rate_limit");
     expect(limiter).toContain("available: false");
     expect(migration).toContain("private.rate_limit_buckets");
+    expect(rateLimitRepair).toContain(
+      "on conflict on constraint rate_limit_buckets_pkey",
+    );
   });
 
   it("keeps campaign transitions atomic, grounded, and service-role only", () => {

@@ -7,7 +7,7 @@ create or replace function public.consume_rate_limit_service(
 returns table (allowed boolean, retry_after_seconds integer)
 language sql
 volatile
-security definer
+security invoker
 set search_path = ''
 as $$
   select *
@@ -20,7 +20,7 @@ create or replace function public.ensure_auth_user_workspace_service(
 returns uuid
 language sql
 volatile
-security definer
+security invoker
 set search_path = ''
 as $$
   select private.ensure_auth_user_workspace(target_user_id);

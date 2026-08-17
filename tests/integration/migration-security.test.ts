@@ -50,6 +50,15 @@ describe("migration security baseline", () => {
     expect(migrationSql).not.toMatch(
       /grant .*public\.provider_webhook_events.* to authenticated/i,
     );
+    expect(migrationSql).toContain(
+      "revoke all on function public.rls_auto_enable() from public, anon, authenticated",
+    );
+    expect(migrationSql).toMatch(
+      /create or replace function public\.suppress_lead[\s\S]*?security invoker/i,
+    );
+    expect(migrationSql).toMatch(
+      /create or replace function public\.ensure_auth_user_workspace_service[\s\S]*?security invoker/i,
+    );
   });
 
   it("defines explicit private storage and the required plan limits", () => {

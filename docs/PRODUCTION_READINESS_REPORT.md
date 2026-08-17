@@ -1,229 +1,136 @@
-# Orliqo Production Readiness Report
+# Orliqo Production Auth & Supabase Release Report
 
-Date: 2026-08-11  
-Branch: `codex/fix-auth-login`  
-No commit, push, migration deployment, or application deployment was performed.
+Date: 2026-08-11
 
-## 1. Authentication failure root cause
+Git operations: none
 
-The original authenticated render called the full production environment parser from historical `src/features/auth/session.ts:18`, `src/features/workspaces/data.ts:25`, and `src/lib/supabase/server.ts:20`. Missing unrelated provider configuration raised `EnvironmentValidationError` before normal Supabase session/workspace reads, and the exception reached the generic safe boundary.
+Application deployment: not performed
 
-A second production-only failure was found during live QA: the distributed limiter called `private.consume_rate_limit` through PostgREST, while the hosted Data API did not expose the `private` schema (`PGRST106`). The limiter correctly failed closed but the UI incorrectly described this as user throttling.
+Database reset/data deletion: not performed
 
-## 2. Authentication architecture after the fix
+## Release status
 
-- Supabase auth/data, application URL, privileged Supabase, and optional provider configuration have separate parsers.
-- Protected routes refresh and validate the Supabase session in the proxy; expired sessions redirect to login with a useful message.
-- Email/password and Google callbacks converge on one idempotent bootstrap path.
-- The database trigger and repair RPC create or restore profile → workspace → active owner membership → settings → business profile → trial/audit rows.
-- Returning users reuse their active workspace; the repair path does not create duplicates.
-- Auth-critical privileged RPCs use service-role-only functions in the exposed `public` schema and delegate to private database functions.
-- Logout clears Supabase cookies and local workspace/demo cookies.
-- Server Function argument logging is disabled so passwords are not printed by Next.js development diagnostics.
+| Area | Status | Evidence |
+| --- | --- | --- |
+| Authentication | **FAIL** | The release candidate passes automated checks, but the live Vercel deployment is stale and `/api/health` returns 500. |
+| Google OAuth | **FAIL** | The release candidate reaches Supabase and redirects to Google correctly. The live deployment returns 404 for `/auth/google`. |
+| Email Authentication | **FAIL** | Hosted email signup is enabled and confirmation is required, but production custom SMTP is not configured/verified. |
+| Workspace Bootstrap | **PASS** | Trigger enabled; repair function and service boundary valid; all non-seed Auth users have profiles and active memberships. |
+| RLS | **PASS** | Every public table has RLS; 166 policies; the public view uses `security_invoker`; no client-callable public `SECURITY DEFINER` functions remain. |
+| Pending Migrations | **PASS** | Local and remote migration histories match; no pending migrations remain. |
+| SMTP | **FAIL** | Supabase default SMTP is non-production and limited to two messages/hour. Custom SMTP and DNS require human credentials/configuration. |
+| Security | **FAIL** | Code/database controls pass, but hosted leaked-password protection is still disabled and production CAPTCHA is not configured. |
 
-## 3. Demo/customer prototype removal
+## Database release
 
-Customer login, registration, app navigation, dashboards, campaign panels, integrations, lead/inbox/analytics surfaces, and public copy no longer expose demo workspaces, fake successes, synthetic replies, demo credits, or demo badges. Internal deterministic fixtures remain only for automated/local testing. They cannot be activated when `NODE_ENV=production`; production also rejects `DEMO_MODE=true`.
+Applied after `supabase db push --dry-run` review:
 
-## 4. UX, onboarding, metadata, and accessibility
+| Migration | Classification | Result |
+| --- | --- | --- |
+| `20260811110333_auth_bootstrap_repair.sql` | Safe schema/function/trigger change; no bulk data migration; non-destructive | Applied |
+| `20260811143500_auth_service_rpc_boundary.sql` | Safe function/grant change; no data mutation; non-destructive | Applied |
+| `20260811123349_security_advisor_hardening.sql` | Safe function ACL change; non-destructive | Applied |
+| `20260811124026_rpc_invoker_boundaries.sql` | Safe function security/grant change; non-destructive | Applied |
+| `20260811124721_fix_rate_limit_parameter_ambiguity.sql` | Safe function bug fix; non-destructive | Applied |
 
-- Registration is minimal and includes Google directly.
-- Onboarding is three post-account stages: business, audience, and review/ready; website is optional.
-- Advanced setup remains available later in Settings.
-- Passwords use the implemented NIST-aligned 15–128 character policy, a common-password check, live accessible guidance, strength feedback, and show/hide controls without composition rules.
-- Submission states are truthful, duplicate submissions are blocked, and reduced motion is supported.
-- Copy is business-agnostic and uses plain language.
-- Orliqo metadata, manifest, Open Graph/Twitter metadata, application name, theme colors, and real brand icon replace framework defaults.
-- Keyboard focus, labels, autocomplete, status/progress semantics, contrast-oriented existing styles, and responsive layouts target WCAG 2.2 AA.
+The production auth blocker found during verification was PostgreSQL error `42702`: `bucket_key` was ambiguous between the rate-limit function parameter and conflict-target column. The conflict now targets `rate_limit_buckets_pkey` explicitly. The service-role RPC returns an allowed result successfully.
 
-## 5. Security and rate limiting
+Post-release database checks:
 
-- Feature-scoped environment validation prevents optional integrations from blocking auth/database reads.
-- Distributed, hashed-key production limits cover login, registration, recovery/reset, Google initiation, imports, campaign creation/control/generation/sending, and inbox generation/replies.
-- The limiter fails closed if its privileged backend is unavailable and distinguishes unavailability from actual throttling.
-- Input hardening includes MIME/signature checks for logo and XLSX uploads, CSV NUL rejection, bounded import sizes/rows, spreadsheet-formula neutralization, URL/redirect validation, existing SSRF address pinning, and Zod validation.
-- Nonce CSP, HSTS in production, frame restrictions, nosniff, referrer policy, permissions policy, secure auth cookies, RLS/workspace authorization, server-action reauthorization, and service-role isolation remain enabled.
-- Auth diagnostics contain only event/stage/status and safe error class/code/status; passwords, OAuth codes, tokens, cookies, emails, and secrets are excluded.
+- PostgreSQL 17.6.
+- Auth trigger `on_auth_user_created` enabled.
+- Auth/bootstrap and rate-limit wrappers are `SECURITY INVOKER` with correct role ACLs.
+- No public table lacks RLS.
+- No `anon` or `authenticated` role can execute a public `SECURITY DEFINER` function.
+- `billing_events` and `provider_webhook_events` intentionally have no client policies and no client table grants; they are server/webhook-only.
+- The remaining Supabase security-advisor warning is hosted leaked-password protection.
 
-## 6. Privacy, terms, and research
+## Authentication architecture
 
-The Privacy Policy, Terms of Service, and Acceptable Use Policy now describe actual Orliqo processing, outreach responsibilities, AI assistance, integrations, billing, opt-outs/suppression, retention, international processing, rights, abuse controls, and legal limitations. Research is recorded in:
+- Email/password signup, login, recovery, and reset use server-side Supabase clients.
+- Google uses Supabase PKCE, a cookie-bound verifier, `exchangeCodeForSession`, and a safe internal `next` allow-list.
+- Protected requests refresh/validate sessions with `getUser`.
+- Logout clears Supabase, active-workspace, and demo cookies.
+- Workspace bootstrap is idempotent: profile → workspace → owner membership → settings → business profile → trial subscription.
+- Authorization uses active workspace membership and RLS, not user-editable metadata.
+- Service-role access stays in `server-only` modules and is never exposed through `NEXT_PUBLIC_*` variables.
+- Auth logs contain safe stage/error metadata only; no passwords, OAuth codes, cookies, tokens, or keys.
 
-- `docs/research/AUTH_SECURITY_RESEARCH.md`
-- `docs/research/ONBOARDING_UX_RESEARCH.md`
-- `docs/research/PRIVACY_COMPLIANCE_RESEARCH.md`
-- `docs/research/AUTH_FAILURE_ROOT_CAUSE.md`
+## Google OAuth
 
-Licensed review is still required for the operating entity details, Jordan PDPL duties, EU/UK representation and transfers, CCPA/CPRA applicability, governing law/venue, liability/indemnity/refunds, and the operational retention/deletion schedule.
+Release-candidate result:
 
-## 7. Test and browser results
+- App route: HTTP 307 to the hosted Supabase `/auth/v1/authorize` endpoint.
+- Supabase: HTTP 302 to `https://accounts.google.com/o/oauth2/v2/auth`.
+- Google provider: enabled.
+- Interactive consent/session callback: not completed because no controlled Google test identity was provided.
+
+Live result:
+
+- `https://orliqo.vercel.app/auth/google`: 404.
+- Current build includes `/auth/google`; therefore the exact live root cause is a stale deployment.
+
+## Production Auth SMTP
+
+Recommended provider: **Resend**, using a dedicated auth subdomain to isolate transactional-auth reputation from campaign/marketing mail.
+
+Supabase Authentication → Email → SMTP settings:
+
+| Setting | Required value |
+| --- | --- |
+| Custom SMTP | Enabled |
+| Host | `smtp.resend.com` |
+| Port | `587` |
+| Security | STARTTLS |
+| Username | `resend` |
+| Password | A restricted Resend API key created by a human |
+| Sender name | `Orliqo` |
+| Sender email/admin email | `no-reply@auth.orliqo.com` |
+| Email signup | Enabled |
+| Auto-confirm | Disabled |
+| Secure email change | Enabled |
+
+The application's `SMTP_*` environment variables configure campaign delivery and do **not** configure hosted Supabase Auth email.
+
+### DNS
+
+Add `auth.orliqo.com` to Resend and copy its generated records exactly:
+
+- SPF TXT and feedback MX at the Resend-provided `send.auth.orliqo.com` host.
+- DKIM TXT at the Resend-provided selector, normally `resend._domainkey.auth.orliqo.com`.
+- Initial DMARC TXT:
+  - Host: `_dmarc.auth.orliqo.com`
+  - Value: `v=DMARC1; p=none; rua=mailto:dmarc@orliqo.com;`
+
+After all legitimate sources pass SPF/DKIM/DMARC, move DMARC to `p=quarantine`, then `p=reject`. Do not merge the auth-subdomain SPF record with the existing root SPF forwarding record. Current public DNS has root forwarding SPF/MX but no Auth-subdomain SPF, DKIM, or DMARC records.
+
+### Auth email templates
+
+Disable provider click tracking so links are not rewritten. Use server-side token-hash links:
+
+- Confirm signup: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/onboarding`
+- Reset password: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`
+
+Keep messages short, transactional, and free of user-provided content. Start with Supabase's post-SMTP default limit of 30 Auth emails/hour, then raise it only after monitoring delivery and abuse.
+
+## Verification
 
 - `pnpm lint`: passed.
 - `pnpm typecheck`: passed.
 - `pnpm test`: 45 files, 171 tests passed.
-- `pnpm test:e2e`: 42 tests passed across desktop/tablet/mobile projects.
-- `pnpm build`: passed; 42 application routes generated/validated.
-- `git diff --check`: passed.
-- Browser QA: no hydration failures; no horizontal overflow at 390, 430, 768, 1024, 1280, 1440, or 1920 px; keyboard/password controls and reduced-motion behavior passed.
-- Live hosted-Supabase flow: confirmed Auth user, profile, workspace, exactly one active owner membership, business profile, saved business/audience, onboarding completion, dashboard, logout, expired-session redirect, returning login, and Google OAuth initiation. Browser console errors: 0; page errors: 0; first-party 500 responses: 0.
-- All temporary verification users/workspaces/audits were removed; final temporary-user count: 0.
-- Local Supabase/pgTAP execution remains blocked because Docker is not running.
+- `pnpm build`: passed; `/auth/google`, callbacks, confirmation, login, registration, recovery, reset, onboarding, and protected routes included.
+- `pnpm test:e2e`: 42 tests passed across desktop, tablet, and mobile Chromium.
+- Supabase migration list: local equals remote; zero pending.
+- Supabase security advisor: database issues fixed; hosted leaked-password protection remains.
+- Linked pgTAP execution could not start because Docker Desktop is unavailable; direct remote RLS/ACL/bootstrap queries and static migration tests passed.
 
-## 8. External configuration and remaining risks
+## Remaining manual steps
 
-Required before release:
+1. Deploy the verified current build; no deployment was performed by this task.
+2. Set production `APP_URL` and `NEXT_PUBLIC_APP_URL` to the canonical HTTPS origin. Set the Supabase Site URL and exact allow-list entries for `/auth/callback` and `/auth/confirm`.
+3. In Google Cloud, use the Supabase callback URL `https://umonbkiawwcqhmsmgknq.supabase.co/auth/v1/callback`, set the production JavaScript origin, publish/verify the consent screen, and complete one controlled new-user and returning-user consent flow.
+4. Create the Resend account/API key, add the DNS records above, enable Supabase custom SMTP, install the Auth templates, disable click tracking, and test confirmation/recovery delivery.
+5. Enable Supabase leaked-password protection and Turnstile/hCaptcha for public signup/recovery.
+6. Start Docker Desktop and run `pnpm exec supabase test db` for the local pgTAP tenant-isolation suite.
 
-1. Review and deploy both pending migrations:
-   - `20260811110333_auth_bootstrap_repair.sql`
-   - `20260811143500_auth_service_rpc_boundary.sql`
-2. Set production `APP_URL` and `NEXT_PUBLIC_APP_URL`, Auth redirect allow-list entries, Google provider credentials/branding, and the exact Supabase callback URL.
-3. Resolve Supabase confirmation-email capacity/custom SMTP. A direct `/register` test reached Supabase but was rejected with `over_email_send_rate_limit` (429); no Auth user was created. The UI now explains the retry path.
-4. Run a real new/returning Google consent flow with a controlled Google test identity. Initiation and callback/error logic are tested, but interactive third-party consent was not completed here.
-5. Run the migration/RLS/pgTAP suite with Docker or a disposable release database, then run Supabase security advisors.
-6. Complete licensed legal review and supply the operating legal entity, registration/address, privacy contact, subprocessor list/DPA, sender postal-address workflow, and enforceable retention/erasure procedures.
-7. Validate configured provider credentials and signed webhook callbacks in staging. Optional providers remain feature-scoped and are not required for sign-in.
-
-Do not deploy until items 1–5 are complete.
-
-## 9. Commands
-
-Verification:
-
-```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm build
-```
-
-After reviewing the SQL, deploy migrations separately:
-
-```bash
-pnpm exec supabase db push
-```
-
-Commit and push only when ready:
-
-```bash
-git add --all
-git commit -m "fix: harden authentication and production onboarding"
-git push -u origin codex/fix-auth-login
-```
-
-## 10. Exact changed-file inventory
-
-- `docs/PRODUCTION_READINESS_REPORT.md`
-- `docs/research/AUTH_FAILURE_ROOT_CAUSE.md`
-- `docs/research/AUTH_SECURITY_RESEARCH.md`
-- `docs/research/ONBOARDING_UX_RESEARCH.md`
-- `docs/research/PRIVACY_COMPLIANCE_RESEARCH.md`
-- `next.config.ts`
-- `playwright.config.ts`
-- `src/app/acceptable-use/page.tsx`
-- `src/app/api/health/route.ts`
-- `src/app/api/imports/leads/route.ts`
-- `src/app/api/imports/website/route.ts`
-- `src/app/api/integrations/[provider]/connect/route.ts`
-- `src/app/api/webhooks/dodo/route.ts`
-- `src/app/api/webhooks/email/[provider]/route.ts`
-- `src/app/api/webhooks/gmail/route.ts`
-- `src/app/api/webhooks/microsoft/route.ts`
-- `src/app/api/webhooks/whatsapp/route.ts`
-- `src/app/api/workspace/logo/route.ts`
-- `src/app/app/analytics/page.tsx`
-- `src/app/app/billing/page.tsx`
-- `src/app/app/campaigns/[campaignId]/page.tsx`
-- `src/app/app/dashboard/page.tsx`
-- `src/app/app/discovery/page.tsx`
-- `src/app/app/error.tsx`
-- `src/app/app/integrations/page.tsx`
-- `src/app/app/integrations/whatsapp/templates/page.tsx`
-- `src/app/app/leads/[leadId]/page.tsx`
-- `src/app/app/leads/page.tsx`
-- `src/app/app/queue/page.tsx`
-- `src/app/auth/callback/route.test.ts`
-- `src/app/auth/callback/route.ts`
-- `src/app/auth/confirm/route.ts`
-- `src/app/auth/google/route.test.ts`
-- `src/app/auth/google/route.ts`
-- `src/app/error.tsx`
-- `src/app/favicon.ico`
-- `src/app/forgot-password/page.tsx`
-- `src/app/global-error.tsx`
-- `src/app/layout.tsx`
-- `src/app/login/page.tsx`
-- `src/app/manifest.ts`
-- `src/app/onboarding/page.tsx`
-- `src/app/page.tsx`
-- `src/app/pricing/page.tsx`
-- `src/app/privacy/page.tsx`
-- `src/app/register/page.tsx`
-- `src/app/reset-password/page.tsx`
-- `src/app/terms/page.tsx`
-- `src/components/analytics/analytics-view.tsx`
-- `src/components/app/app-shell.tsx`
-- `src/components/app/desktop-sidebar.tsx`
-- `src/components/app/mobile-navigation.tsx`
-- `src/components/auth/auth-shell.tsx`
-- `src/components/auth/login-form.tsx`
-- `src/components/auth/password-guidance.tsx`
-- `src/components/auth/recovery-form.tsx`
-- `src/components/auth/register-form.tsx`
-- `src/components/campaigns/campaign-builder.tsx`
-- `src/components/campaigns/campaign-controls.tsx`
-- `src/components/dashboard/campaign-panel.tsx`
-- `src/components/dashboard/metric-rail.tsx`
-- `src/components/dashboard/performance-panel.tsx`
-- `src/components/dashboard/recent-replies.tsx`
-- `src/components/feedback/demo-notice.tsx`
-- `src/components/inbox/inbox-view.tsx`
-- `src/components/integrations/email-composer.tsx`
-- `src/components/leads/lead-detail.tsx`
-- `src/components/leads/lead-import.tsx`
-- `src/components/leads/leads-table.tsx`
-- `src/components/onboarding/onboarding-wizard.tsx`
-- `src/components/public/public-shell.tsx`
-- `src/features/ai/providers/index.ts`
-- `src/features/audit/server.ts`
-- `src/features/auth/actions.ts`
-- `src/features/auth/bootstrap.ts`
-- `src/features/auth/demo-session.ts`
-- `src/features/auth/schemas.test.ts`
-- `src/features/auth/schemas.ts`
-- `src/features/auth/session.test.ts`
-- `src/features/auth/session.ts`
-- `src/features/billing/actions.ts`
-- `src/features/campaigns/actions.ts`
-- `src/features/demo/phase2-store.ts`
-- `src/features/inbox/actions.ts`
-- `src/features/integrations/credential-service.ts`
-- `src/features/integrations/oauth-service.ts`
-- `src/features/onboarding/actions.ts`
-- `src/features/onboarding/data.ts`
-- `src/features/onboarding/schemas.ts`
-- `src/features/onboarding/types.ts`
-- `src/features/workspaces/data.ts`
-- `src/lib/env.test.ts`
-- `src/lib/env.ts`
-- `src/lib/inngest/functions/phase3.ts`
-- `src/lib/inngest/functions/phase4.ts`
-- `src/lib/inngest/functions/phase7.ts`
-- `src/lib/security/rate-limit.ts`
-- `src/lib/supabase/admin.ts`
-- `src/lib/supabase/browser.ts`
-- `src/lib/supabase/server.test.ts`
-- `src/lib/supabase/server.ts`
-- `src/proxy.ts`
-- `supabase/migrations/20260811110333_auth_bootstrap_repair.sql`
-- `supabase/migrations/20260811143500_auth_service_rpc_boundary.sql`
-- `tests/e2e/phase1.spec.ts`
-- `tests/e2e/phase2.spec.ts`
-- `tests/e2e/phase3.spec.ts`
-- `tests/e2e/phase4.spec.ts`
-- `tests/e2e/phase5.spec.ts`
-- `tests/e2e/phase6.spec.ts`
-- `tests/e2e/phase7.spec.ts`
-- `tests/e2e/phase8.spec.ts`
-- `tests/integration/auth-environment-isolation.test.ts`
-
+Do not commit, push, or deploy until the manual release gates are complete.
