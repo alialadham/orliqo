@@ -1,45 +1,25 @@
+import type { Metadata } from "next";
+
 import { PublicDocument } from "@/components/public/public-shell";
 
+export const metadata: Metadata = { title: "Privacy Policy" };
+
 export default function PrivacyPage() {
-  return (
-    <PublicDocument
-      eyebrow="Legal"
-      title="Privacy"
-      summary="Orliqo limits access to workspace data and keeps provider credentials server-side."
-    >
-      <section>
-        <h2>Workspace data</h2>
-        <p>
-          We process account, workspace, business, lead, campaign, message,
-          billing, and integration data to provide the service. Workspace
-          records are separated with membership checks, permission gates, and
-          row-level security.
-        </p>
-      </section>
-      <section>
-        <h2>Provider credentials</h2>
-        <p>
-          Provider credentials are encrypted at rest, used only by server-side
-          adapters, and are not exposed through client-readable tables. Provider
-          webhooks are verified and recorded with replay protection.
-        </p>
-      </section>
-      <section>
-        <h2>Demo data</h2>
-        <p>
-          Demo mode uses synthetic identities, reserved example domains, and
-          deterministic fixtures. Demo delivery is disabled.
-        </p>
-      </section>
-      <section>
-        <h2>Retention and requests</h2>
-        <p>
-          Data is retained while needed to operate the workspace, meet security
-          and billing obligations, or comply with law. Access, export,
-          correction, and deletion requests can be sent to support@orliqo.com
-          and are handled through auditable workflows.
-        </p>
-      </section>
-    </PublicDocument>
-  );
+  return <PublicDocument eyebrow="Legal" title="Privacy Policy" summary="How Orliqo collects, uses, shares, and protects personal information when businesses use our outreach platform.">
+    <p><strong>Effective date:</strong> 11 August 2026</p>
+    <section><h2>1. Who this policy applies to</h2><p>This policy applies to Orliqo account holders, workspace members, website visitors, and people whose business contact information is managed by an Orliqo customer. Orliqo is the controller for account, website, billing, security, and product-usage information. For lead, contact, campaign, and conversation data submitted or directed by a customer, Orliqo generally acts as that customer’s processor or service provider; the customer decides why and how that data is used.</p></section>
+    <section><h2>2. Information we process</h2><ul><li>Account and workspace data, including name, work email, authentication identifiers, memberships, roles, business profile, preferences, and consent records.</li><li>Prospect and contact data, including business details, professional contact details, source URLs, verification evidence, qualification information, suppression status, and uploaded CSV/XLSX records.</li><li>Campaign and communication data, including templates, generated drafts, approvals, sent messages, replies, conversation history, meetings, and performance attribution.</li><li>Integration data, including connected account identifiers, configuration, webhook events, sync state, and encrypted provider credentials. Passwords are handled by the authentication provider and are not stored in Orliqo application tables.</li><li>Billing and usage data, including plan, subscription status, product identifiers, credits, and transaction references. Payment-card details are handled by the billing provider rather than Orliqo.</li><li>Technical and security data, including IP-derived request information, timestamps, device/browser information, session cookies, audit events, rate-limit records, error diagnostics, and optional product analytics.</li></ul></section>
+    <section><h2>3. Sources and purposes</h2><p>We receive information from you, workspace administrators, connected providers, uploaded files, customer-directed research sources, and interactions with outreach. We use it to authenticate users; create and secure workspaces; discover and qualify prospects; generate and review outreach; deliver approved communications through connected providers; process replies; provide analytics and billing; prevent fraud, spam, and abuse; troubleshoot the service; comply with law; and improve Orliqo.</p></section>
+    <section><h2>4. Legal bases</h2><p>Where GDPR or UK GDPR applies, we rely as appropriate on performance of a contract, legitimate interests in operating and securing a business service, compliance with legal obligations, and consent where required. Customers are responsible for identifying and documenting a lawful basis for prospecting and each outreach channel, providing required notices, and honoring objections and opt-outs. Consent to product marketing is optional and can be withdrawn.</p></section>
+    <section><h2>5. AI processing</h2><p>Approved business, prospect, campaign, and conversation context may be sent to the AI provider configured for the relevant feature, such as Gemini, Groq, OpenRouter, or another disclosed compatible provider. Orliqo uses that output to create suggestions; it does not treat generated text as verified fact. Customers must review generated content before use. Provider availability and data terms depend on the configured service.</p></section>
+    <section><h2>6. Service providers and disclosures</h2><p>We disclose data only as needed to operate Orliqo, follow customer instructions, protect the service, complete a transaction, or meet legal obligations. Provider categories include Supabase for authentication, database, and storage; Google or Microsoft for sign-in and connected services; email and messaging providers selected by the customer; Meta for WhatsApp where connected; Dodo Payments for billing; configured AI providers; Inngest for background jobs; and optional Sentry or PostHog services for diagnostics and analytics. We may also disclose data to professional advisers, authorities when legally required, or a successor in a corporate transaction. We do not disclose customer data for cross-context behavioral advertising.</p></section>
+    <section><h2>7. Cookies and sessions</h2><p>Orliqo uses essential, secure session cookies to sign users in, refresh sessions, select an active workspace, prevent abuse, and maintain service state. Optional analytics technologies are used only when configured and permitted. Browser settings that block essential cookies may prevent authentication.</p></section>
+    <section><h2>8. Retention and deletion</h2><p>We retain account and workspace content while the account is active and for a limited period afterward when necessary for recovery, billing, security, disputes, or legal duties. Security and audit records may be retained longer where necessary to protect the service. Provider and backup deletion may take additional time. Suppression records may be retained after other contact data is deleted so an opt-out is not accidentally reversed. Workspace administrators can request export or deletion; we verify authority before acting.</p></section>
+    <section><h2>9. International processing</h2><p>Orliqo and its providers may process data outside the country where it was collected. Where required, we use contractual and other transfer safeguards and assess provider protections. Customers must ensure that their use of integrations and international prospect data complies with applicable transfer rules.</p></section>
+    <section><h2>10. Security</h2><p>Orliqo uses access controls, workspace row-level isolation, least-privilege server credentials, encryption for integration secrets, secure session handling, rate limiting, audit logging, signed webhooks, input validation, and transport encryption. No service can promise absolute security. Please report a suspected security issue to <a href="mailto:security@orliqo.com">security@orliqo.com</a>.</p></section>
+    <section><h2>11. Your rights</h2><p>Depending on location, you may have rights to know or access, correct, delete, restrict or object to processing, withdraw consent, receive portable data, appeal a decision, or complain to a supervisory authority. California residents may also have rights to know, correct, delete, opt out of sale or sharing, limit certain sensitive-information uses, and receive equal service. Orliqo does not use workspace data for sale or cross-context behavioral advertising. To submit a request, email <a href="mailto:privacy@orliqo.com">privacy@orliqo.com</a>. If Orliqo processes your contact data for a customer, we may direct the request to that customer.</p></section>
+    <section><h2>12. Outreach choices</h2><p>Recipients can use the unsubscribe or opt-out method in a message or contact the sender. Orliqo customers must stop prohibited outreach and maintain suppression records. You may also contact <a href="mailto:privacy@orliqo.com">privacy@orliqo.com</a> so we can route a request to the responsible customer.</p></section>
+    <section><h2>13. Children and changes</h2><p>Orliqo is a business service not directed to children. We may update this policy as the service or law changes. Material changes will be communicated through the service or another appropriate channel, and the effective date will be revised.</p></section>
+    <section><h2>14. Contact</h2><p>Privacy questions and rights requests: <a href="mailto:privacy@orliqo.com">privacy@orliqo.com</a>. The contracting Orliqo operator and business address must appear in your order form or invoice; those legal-entity details require confirmation before commercial launch.</p></section>
+  </PublicDocument>;
 }

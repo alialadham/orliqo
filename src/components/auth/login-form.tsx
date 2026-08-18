@@ -1,13 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Info } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { GoogleIcon, MicrosoftIcon } from "@/components/auth/provider-icons";
+import { GoogleIcon } from "@/components/auth/provider-icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,19 +25,12 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  loginAction,
-  oauthLoginAction,
-  useDemoWorkspaceAction,
-} from "@/features/auth/actions";
+import { loginAction } from "@/features/auth/actions";
 import {
   loginSchema,
   type AuthActionResult,
   type LoginInput,
 } from "@/features/auth/schemas";
-import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-
-const microsoftAction = oauthLoginAction.bind(null, "azure");
 
 export function LoginForm({
   next,
@@ -61,49 +54,23 @@ export function LoginForm({
     setPending(true);
     setResult(null);
     startTransition(async () => {
-      const actionResult = await loginAction(values);
-      setResult(actionResult);
-      setPending(false);
-      if (actionResult.ok && actionResult.redirectTo)
-        router.push(actionResult.redirectTo);
-    });
-  });
-
-  async function signInWithGoogle() {
-    setPending(true);
-    setResult(null);
-
-    try {
-      const supabase = createBrowserSupabaseClient();
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error || !data.url) {
+      try {
+        const actionResult = await loginAction(values);
+        setResult(actionResult);
+        if (actionResult.ok && actionResult.redirectTo) {
+          router.replace(actionResult.redirectTo);
+        }
+      } catch {
         setResult({
           ok: false,
           message:
-            error?.message ?? "Google sign-in could not start. Try again.",
+            "We could not sign you in right now. Check your connection and try again.",
         });
+      } finally {
         setPending(false);
-        return;
       }
-
-      window.location.assign(data.url);
-    } catch (error) {
-      setResult({
-        ok: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Google sign-in could not start. Try again.",
-      });
-      setPending(false);
-    }
-  }
+    });
+  });
 
   return (
     <div className="w-full">
@@ -117,7 +84,7 @@ export function LoginForm({
       </div>
 
       {result && !result.ok ? (
-        <Alert variant="destructive" className="mt-6">
+        <Alert variant="destructive" className="mt-6" aria-live="polite">
           <AlertDescription>{result.message}</AlertDescription>
         </Alert>
       ) : null}
@@ -184,6 +151,7 @@ export function LoginForm({
             size="lg"
             className="h-12 w-full text-base"
             disabled={pending}
+            aria-busy={pending}
           >
             {pending ? <Spinner data-icon="inline-start" /> : null}
             {pending ? "Signing in..." : "Continue"}
@@ -193,30 +161,22 @@ export function LoginForm({
       </form>
 
       <div className="mt-5 grid gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="bg-card h-12 w-full text-base"
-          onClick={signInWithGoogle}
-          disabled={pending}
-          aria-busy={pending}
-        >
-          <GoogleIcon data-icon="inline-start" className="size-5" />
-          {pending ? "Connecting to Google..." : "Continue with Google"}
-        </Button>
-        <form action={microsoftAction}>
+        <form action="/auth/google" method="get">
+          {next ? <input type="hidden" name="next" value={next} /> : null}
           <Button
             type="submit"
             variant="outline"
             size="lg"
             className="bg-card h-12 w-full text-base"
           >
-            <MicrosoftIcon data-icon="inline-start" className="size-5" />
-            Continue with Microsoft
+            <GoogleIcon data-icon="inline-start" className="size-5" />
+            Continue with Google
           </Button>
         </form>
       </div>
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        No account yet? Google will create one securely and continue setup.
+      </p>
 
       <p className="text-muted-foreground mt-6 text-center text-sm">
         New to Orliqo?{" "}
@@ -228,24 +188,6 @@ export function LoginForm({
         </Link>
       </p>
 
-      <div className="mt-8 border-t pt-5">
-        <form action={useDemoWorkspaceAction}>
-          <div className="border-primary/25 bg-primary/[0.04] flex min-h-12 flex-col items-start gap-2 rounded-lg border px-3 py-2.5 text-sm sm:flex-row sm:items-center">
-            <Info className="text-primary size-5 shrink-0" aria-hidden="true" />
-            <span className="text-muted-foreground flex-1">
-              Demo mode available - no messages are sent.
-            </span>
-            <Button
-              type="submit"
-              variant="link"
-              size="sm"
-              className="h-auto px-0 font-semibold"
-            >
-              Use demo workspace
-            </Button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }

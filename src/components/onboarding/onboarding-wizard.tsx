@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { ArrowLeft, ArrowRight, Check, Globe2, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,6 +35,10 @@ const channelCopy = {
   manual_call: ["Manual Call List", "Available immediately for exported call lists.", "Capacity is user-managed."],
 } as const;
 
+function channelStateLabel(state: OnboardingState["channels"][number]["state"]): string {
+  return state === "demo" ? "setup required" : state.replaceAll("_", " ");
+}
+
 type Notice = { tone: "success" | "error"; text: string } | null;
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -48,7 +53,150 @@ function NumberInput({ value, onChange, min = 0, max }: { value: number | null; 
   return <Input type="number" min={min} max={max} value={value ?? ""} onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} />;
 }
 
-export function OnboardingWizard({ initialState, canEdit, embedded = false }: { initialState: OnboardingState; canEdit: boolean; embedded?: boolean }) {
+export function OnboardingWizard(props: { initialState: OnboardingState; canEdit: boolean; embedded?: boolean }) {
+  return props.embedded ? <AdvancedWorkspaceSetup {...props} embedded /> : <QuickOnboarding {...props} />;
+}
+
+function QuickOnboarding({ initialState, canEdit }: { initialState: OnboardingState; canEdit: boolean }) {
+  const [state, setState] = useState(initialState);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<Notice>(null);
+  const [location, setLocation] = useState(
+    (state.icps[0]?.cities.length ? state.icps[0].cities : state.icps[0]?.countries ?? []).join(", "),
+  );
+  const [roles, setRoles] = useState((state.icps[0]?.targetRoles ?? []).join(", "));
+  const icp = state.icps[0];
+
+  function values(value: string): string[] {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+
+  function audience(): IcpInput {
+    const industries = icp?.industries ?? [];
+    const places = values(location);
+    const description = `${industries.join(", ") || "Relevant businesses"} in ${places.join(", ") || "the selected markets"}.`;
+    return {
+      id: icp?.id || crypto.randomUUID(),
+      name: icp?.name || "Primary audience",
+      naturalLanguageDescription: description,
+      summary: description,
+      countries: places,
+      cities: [],
+      industries,
+      companySizes: icp?.companySizes ?? [],
+      employeeMin: null,
+      employeeMax: null,
+      revenueMin: null,
+      revenueMax: null,
+      businessAgeMin: null,
+      businessAgeMax: null,
+      websiteStatuses: [],
+      socialActivityMin: null,
+      reviewCountMin: null,
+      keywords: [],
+      excludedIndustries: [],
+      excludedCompanies: [],
+      minimumScore: 60,
+      requiredContactMethods: [],
+      targetRoles: values(roles),
+      audienceBreadth: "balanced",
+      isDefault: true,
+      archived: false,
+    };
+  }
+
+  async function saveBusiness() {
+    if (!state.business.companyName.trim() || !state.business.industry.trim()) {
+      setNotice({ tone: "error", text: "Enter your business name and business type." });
+      return;
+    }
+    setSaving(true);
+    setNotice(null);
+    const result = await saveBusinessAction(state.business);
+    setSaving(false);
+    if (!result.ok) return setNotice({ tone: "error", text: result.message });
+    setStep(2);
+  }
+
+  async function saveAudience() {
+    const nextAudience = audience();
+    if (!nextAudience.industries.length) {
+      setNotice({ tone: "error", text: "Add at least one industry." });
+      return;
+    }
+    setSaving(true);
+    setNotice(null);
+    const result = await saveIcpAction(nextAudience);
+    setSaving(false);
+    if (!result.ok) return setNotice({ tone: "error", text: result.message });
+    setState((current) => ({ ...current, icps: [nextAudience, ...current.icps.slice(1)] }));
+    setStep(3);
+  }
+
+  const progress = Math.round((step / 3) * 100);
+  return (
+    <main id="main-content" tabIndex={-1} className="mx-auto min-h-[calc(100dvh-4rem)] w-full max-w-3xl px-4 py-8 outline-none sm:px-6 sm:py-12">
+      <div className="mb-8">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Setup {step} of 3</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Workspace setup progress" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step}>
+          <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${progress}%` }} />
+        </div>
+        <ol className="mt-3 grid grid-cols-3 text-xs text-muted-foreground" aria-label="Setup steps">
+          {["Your business", "Your audience", "Ready"].map((label, index) => <li key={label} aria-current={index + 1 === step ? "step" : undefined} className={cn(index === 1 && "text-center", index === 2 && "text-right", index + 1 === step && "font-semibold text-foreground")}>{label}</li>)}
+        </ol>
+      </div>
+
+      {notice ? <div role={notice.tone === "error" ? "alert" : "status"} className={cn("mb-5 rounded-lg border p-3 text-sm", notice.tone === "error" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-success/30 bg-success/5")}>{notice.text}</div> : null}
+      <section className="rounded-2xl border bg-card p-5 surface-shadow sm:p-8">
+        {step === 1 ? <>
+          <StepHeading id="quick-business" eyebrow="Your business" title="Tell us about your business" description="This helps Orliqo tailor prospect suggestions. A website is optional." />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Business name"><Input autoComplete="organization" disabled={!canEdit} value={state.business.companyName} onChange={(event) => setState((current) => ({ ...current, business: { ...current.business, companyName: event.target.value } }))} /></Field>
+            <Field label="Business type or industry" hint="For example: manufacturing, consulting, logistics, retail"><Input disabled={!canEdit} value={state.business.industry} onChange={(event) => setState((current) => ({ ...current, business: { ...current.business, industry: event.target.value } }))} /></Field>
+            <div className="sm:col-span-2"><Field label="Website (optional)" hint="You can add or change this later."><Input type="url" inputMode="url" autoComplete="url" placeholder="https://yourbusiness.com" disabled={!canEdit} value={state.business.websiteUrl} onChange={(event) => setState((current) => ({ ...current, business: { ...current.business, websiteUrl: event.target.value } }))} /></Field></div>
+          </div>
+        </> : null}
+
+        {step === 2 ? <>
+          <StepHeading id="quick-audience" eyebrow="Your audience" title="Who would you like to reach?" description="Start broad. You can refine your audience and add exclusions later." />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <CsvInput label="Industries" value={icp?.industries ?? []} onChange={(industries) => setState((current) => ({ ...current, icps: current.icps.length ? current.icps.map((item, index) => index === 0 ? { ...item, industries } : item) : [{ ...audience(), industries }] }))} placeholder="Pharmaceuticals, wholesale, healthcare" />
+            <Field label="Locations" hint="Separate multiple locations with commas"><Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Jordan, United Arab Emirates" /></Field>
+            <CsvInput label="Company size" value={icp?.companySizes ?? []} onChange={(companySizes) => setState((current) => ({ ...current, icps: current.icps.length ? current.icps.map((item, index) => index === 0 ? { ...item, companySizes } : item) : [{ ...audience(), companySizes }] }))} placeholder="1–10, 11–50, 51–200" />
+            <Field label="Role or job title (optional)" hint="Separate multiple roles with commas"><Input value={roles} onChange={(event) => setRoles(event.target.value)} placeholder="Owner, Operations Director" /></Field>
+          </div>
+        </> : null}
+
+        {step === 3 ? <>
+          <StepHeading id="quick-ready" eyebrow="Ready" title="Your workspace is ready" description="Review the essentials. You can update them at any time in Settings." />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ReviewCard title="Business" lines={[state.business.companyName, state.business.industry, state.business.websiteUrl || "No website added"]} />
+            <ReviewCard title="Audience" lines={[(state.icps[0]?.industries ?? []).join(", "), location, roles ? `Roles: ${roles}` : "Any relevant role"]} />
+          </div>
+          <div className="mt-5 rounded-lg border border-success/30 bg-success/5 p-4 text-sm"><p className="font-semibold">Nothing sends automatically.</p><p className="mt-1 text-muted-foreground">You’ll review campaigns and connect an approved sending account before outreach begins.</p></div>
+        </> : null}
+      </section>
+
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <Button type="button" variant="outline" disabled={step === 1 || saving} onClick={() => setStep((current) => Math.max(1, current - 1) as 1 | 2 | 3)}><ArrowLeft />Back</Button>
+        {step === 1 ? <Button type="button" disabled={!canEdit || saving} onClick={saveBusiness}>{saving ? <Loader2 className="animate-spin" /> : null}{saving ? "Saving business…" : "Continue"}<ArrowRight /></Button> : null}
+        {step === 2 ? <Button type="button" disabled={!canEdit || saving} onClick={saveAudience}>{saving ? <Loader2 className="animate-spin" /> : null}{saving ? "Saving audience…" : "Continue"}<ArrowRight /></Button> : null}
+        {step === 3 ? <form action={completeOnboardingAction}><CompleteButton disabled={!canEdit} /></form> : null}
+      </div>
+    </main>
+  );
+}
+
+function CompleteButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return <Button type="submit" disabled={disabled || pending} aria-busy={pending}>{pending ? <Loader2 className="animate-spin" /> : <Check />}{pending ? "Preparing Orliqo…" : "Open Orliqo"}</Button>;
+}
+
+function AdvancedWorkspaceSetup({ initialState, canEdit, embedded = false }: { initialState: OnboardingState; canEdit: boolean; embedded?: boolean }) {
   const [state, setState] = useState(initialState);
   const [step, setStep] = useState(initialState.completed ? 1 : initialState.currentStep);
   const [notice, setNotice] = useState<Notice>(null);
@@ -260,7 +408,7 @@ function AudienceStep({ state, setState, canEdit, activeIcpId, onSelect, onDupli
 }
 
 function ChannelsStep({ state, setState, canEdit }: { state: OnboardingState; setState: React.Dispatch<React.SetStateAction<OnboardingState>>; canEdit: boolean }) {
-  return <><StepHeading id="step-4-title" eyebrow="Channels" title="Choose where you plan to reach prospects" description="Preferences are saved here. Provider connections and approval gates still apply before delivery." /><div className="divide-y rounded-xl border">{state.channels.map((channel) => { const [name, description, capacity] = channelCopy[channel.channel]; return <div key={channel.channel} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{name}</h2><Badge variant="outline" className="capitalize">{channel.state.replaceAll("_", " ")}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{description}</p><p className="mt-1 text-xs text-muted-foreground">{capacity}</p></div><div className="flex items-center gap-3"><Button type="button" size="sm" variant="outline" disabled={channel.channel !== "manual_call"}> {channel.channel === "manual_call" ? "Ready" : "Setup later"}</Button><label className="flex items-center gap-2 text-sm font-medium"><Checkbox disabled={!canEdit} checked={channel.enabled} onCheckedChange={(checked) => setState((current) => ({ ...current, channels: current.channels.map((item) => item.channel === channel.channel ? { ...item, enabled: Boolean(checked) } : item) }))} />Enabled</label></div></div>; })}</div></>;
+  return <><StepHeading id="step-4-title" eyebrow="Channels" title="Choose where you plan to reach prospects" description="Preferences are saved here. Provider connections and approval gates still apply before delivery." /><div className="divide-y rounded-xl border">{state.channels.map((channel) => { const [name, description, capacity] = channelCopy[channel.channel]; return <div key={channel.channel} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{name}</h2><Badge variant="outline" className="capitalize">{channelStateLabel(channel.state)}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{description}</p><p className="mt-1 text-xs text-muted-foreground">{capacity}</p></div><div className="flex items-center gap-3"><Button type="button" size="sm" variant="outline" disabled={channel.channel !== "manual_call"}> {channel.channel === "manual_call" ? "Ready" : "Setup later"}</Button><label className="flex items-center gap-2 text-sm font-medium"><Checkbox disabled={!canEdit} checked={channel.enabled} onCheckedChange={(checked) => setState((current) => ({ ...current, channels: current.channels.map((item) => item.channel === channel.channel ? { ...item, enabled: Boolean(checked) } : item) }))} />Enabled</label></div></div>; })}</div></>;
 }
 
 function GoalsStep({ state, setState, canEdit }: { state: OnboardingState; setState: React.Dispatch<React.SetStateAction<OnboardingState>>; canEdit: boolean }) {

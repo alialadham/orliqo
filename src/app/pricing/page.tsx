@@ -1,6 +1,6 @@
 import { PricingGrid } from "@/components/billing/pricing-grid";
 import { PublicDocument } from "@/components/public/public-shell";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 
 export default async function PricingPage({
   searchParams,
@@ -9,7 +9,7 @@ export default async function PricingPage({
 }) {
   const query = await searchParams;
   const interval = query.interval === "year" ? "year" : "month";
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   return (
     <PublicDocument
       eyebrow="Pricing"

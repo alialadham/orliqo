@@ -1,11 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const signInWithOAuth = vi.fn();
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 vi.mock("@/features/auth/actions", () => ({
@@ -14,55 +12,57 @@ vi.mock("@/features/auth/actions", () => ({
   useDemoWorkspaceAction: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/browser", () => ({
-  createBrowserSupabaseClient: () => ({ auth: { signInWithOAuth } }),
-}));
-
 import { LoginForm } from "@/components/auth/login-form";
+import { loginAction } from "@/features/auth/actions";
 
 describe("LoginForm Google OAuth", () => {
-  beforeEach(() => {
-    signInWithOAuth.mockReset();
-    vi.spyOn(window.location, "assign").mockImplementation(() => undefined);
+  it("submits Google sign-in to the dedicated initiation route", () => {
+    render(<LoginForm />);
+    const button = screen.getByRole("button", {
+      name: "Continue with Google",
+    });
+    const form = button.closest("form");
+
+    expect(form).toHaveAttribute("action", "/auth/google");
+    expect(form).toHaveAttribute("method", "get");
+    expect(
+      screen.queryByText("Orliqo could not load this view"),
+    ).not.toBeInTheDocument();
   });
 
-  it("starts Google OAuth with the browser callback and redirects to Supabase", async () => {
-    signInWithOAuth.mockResolvedValue({
-      data: { url: "https://supabase.test/auth/v1/authorize?provider=google" },
-      error: null,
-    });
-    const user = userEvent.setup();
-
-    render(<LoginForm />);
-    await user.click(
-      screen.getByRole("button", { name: "Continue with Google" }),
-    );
-
-    await waitFor(() =>
-      expect(signInWithOAuth).toHaveBeenCalledWith({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      }),
-    );
-    expect(window.location.assign).toHaveBeenCalledWith(
-      "https://supabase.test/auth/v1/authorize?provider=google",
-    );
-  });
-
-  it("shows a visible error when Google OAuth cannot start", async () => {
-    signInWithOAuth.mockResolvedValue({
-      data: { url: null },
-      error: new Error("Google provider unavailable"),
-    });
-    const user = userEvent.setup();
-
-    render(<LoginForm />);
-    await user.click(
-      screen.getByRole("button", { name: "Continue with Google" }),
-    );
+  it("explains that Google also creates first-time accounts", () => {
+    render(<LoginForm next="/app/leads" />);
 
     expect(
-      await screen.findByText("Google provider unavailable"),
+      screen.getByText(
+        "No account yet? Google will create one securely and continue setup.",
+      ),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("button", { name: "Continue with Google" })
+        .closest("form")
+        ?.querySelector('input[name="next"]'),
+    ).toHaveValue("/app/leads");
+  });
+
+  it("recovers when email sign-in unexpectedly fails", async () => {
+    vi.mocked(loginAction).mockRejectedValueOnce(new Error("network failed"));
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Work email" }),
+      "user@example.com",
+    );
+    await user.type(screen.getByLabelText("Password"), "password");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(
+      await screen.findByText(
+        "We could not sign you in right now. Check your connection and try again.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 });

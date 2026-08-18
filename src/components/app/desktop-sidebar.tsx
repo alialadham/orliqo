@@ -65,7 +65,7 @@ export function DesktopSidebar({ context, notificationCount }: { context: Worksp
 
         <div className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2">
           <Avatar className="size-8 border border-white/15"><AvatarFallback className="bg-white/12 text-xs text-white">{context.user.initials}</AvatarFallback></Avatar>
-          <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{context.user.fullName}</p><p className="truncate text-[11px] text-white/45">{context.isDemo ? `${context.activeWorkspace.plan} demo` : ROLE_LABELS[context.activeWorkspace.role]}</p></div>
+          <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{context.user.fullName}</p><p className="truncate text-[11px] text-white/45">{ROLE_LABELS[context.activeWorkspace.role]}</p></div>
         </div>
 
         <form action={logoutAction} className="mt-1">

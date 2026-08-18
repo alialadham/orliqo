@@ -38,11 +38,9 @@ function dimensionRows(
 export function AnalyticsView({
   summary,
   rangeDays,
-  demo,
 }: {
   summary: AnalyticsSummary;
   rangeDays: 7 | 30 | 90;
-  demo: boolean;
 }) {
   const funnel = funnelRows(summary);
   const cards = [
@@ -65,10 +63,7 @@ export function AnalyticsView({
     <div className="mx-auto max-w-[1500px] space-y-5">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Analytics</h1>
-            {demo ? <Badge variant="outline">Demo data</Badge> : null}
-          </div>
+          <h1 className="text-3xl font-bold">Analytics</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Attributed outreach performance with evidence-gated recommendations.
           </p>

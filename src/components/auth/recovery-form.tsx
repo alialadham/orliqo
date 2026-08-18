@@ -1,16 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PasswordGuidance } from "@/components/auth/password-guidance";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { forgotPasswordAction, resetPasswordAction } from "@/features/auth/actions";
 import {
@@ -55,7 +57,9 @@ export function ResetPasswordForm() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<AuthActionResult | null>(null);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const form = useForm<ResetPasswordInput>({ resolver: zodResolver(resetPasswordSchema), defaultValues: { password: "", confirmPassword: "" } });
+  const password = useWatch({ control: form.control, name: "password" });
 
   const submit = form.handleSubmit((values) => {
     setPending(true);
@@ -68,13 +72,21 @@ export function ResetPasswordForm() {
   });
 
   return (
-    <RecoveryFrame title="Choose a new password" description="Use at least 10 characters and do not reuse a provider password.">
+    <RecoveryFrame title="Choose a new password" description="Use a long, unique password that you do not use elsewhere.">
       {result ? <Alert variant={result.ok ? "default" : "destructive"}>{result.ok ? <CheckCircle2 className="size-4 text-success" /> : null}<AlertDescription>{result.message}</AlertDescription></Alert> : null}
       <form onSubmit={submit} noValidate>
         <FieldGroup>
           <Field data-invalid={Boolean(form.formState.errors.password)}>
             <FieldLabel htmlFor="new-password">New password</FieldLabel>
-            <Input id="new-password" type="password" autoComplete="new-password" className="h-12 text-base" aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} />
+            <InputGroup className="h-12 bg-card">
+              <InputGroupInput id="new-password" type={passwordVisible ? "text" : "password"} autoComplete="new-password" className="h-12 text-base" aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton type="button" size="icon-sm" aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible((visible) => !visible)}>
+                  {passwordVisible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+            <PasswordGuidance password={password} />
             <FieldError errors={[form.formState.errors.password]} />
           </Field>
           <Field data-invalid={Boolean(form.formState.errors.confirmPassword)}>
@@ -82,7 +94,7 @@ export function ResetPasswordForm() {
             <Input id="confirm-password" type="password" autoComplete="new-password" className="h-12 text-base" aria-invalid={Boolean(form.formState.errors.confirmPassword)} {...form.register("confirmPassword")} />
             <FieldError errors={[form.formState.errors.confirmPassword]} />
           </Field>
-          <Button type="submit" className="h-12" disabled={pending}>{pending ? <Spinner data-icon="inline-start" /> : null}{pending ? "Updating..." : "Update password"}</Button>
+          <Button type="submit" className="h-12" disabled={pending} aria-busy={pending}>{pending ? <Spinner data-icon="inline-start" /> : null}{pending ? "Updating password…" : "Update password"}</Button>
         </FieldGroup>
       </form>
     </RecoveryFrame>

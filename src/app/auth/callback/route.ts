@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { ensureAuthenticatedUserWorkspace } from "@/features/auth/bootstrap";
 import {
   EnvironmentValidationError,
-  getSupabaseOAuthEnvironment,
+  getSupabaseAuthEnvironment,
 } from "@/lib/env";
 import { safeRedirectPath } from "@/lib/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -37,20 +38,26 @@ function errorMetadata(error: unknown): Record<string, unknown> {
   };
 }
 
+function callbackRedirect(requestUrl: URL, path: string) {
+  const response = NextResponse.redirect(new URL(path, requestUrl.origin));
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const requestId = crypto.randomUUID();
   const code = requestUrl.searchParams.get("code");
   const next = safeRedirectPath(requestUrl.searchParams.get("next"));
+  const source = requestUrl.searchParams.get("source") === "register" ? "register" : "login";
+  const failurePath = `/${source}?error=oauth_callback_failed`;
   let activeStage: CallbackStage = "callback";
 
   if (!code) {
     callbackLog("error", requestId, "callback", {
       status: "missing_code",
     });
-    return NextResponse.redirect(
-      new URL("/login?error=oauth_callback_failed", requestUrl.origin),
-    );
+    return callbackRedirect(requestUrl, failurePath);
   }
 
   try {
@@ -59,7 +66,7 @@ export async function GET(request: Request) {
       status: "started",
       validationCategory: "supabase_oauth",
     });
-    const environment = getSupabaseOAuthEnvironment();
+    const environment = getSupabaseAuthEnvironment();
     callbackLog("info", requestId, "environment_validation", {
       status: "succeeded",
       validationCategory: "supabase_oauth",
@@ -70,7 +77,9 @@ export async function GET(request: Request) {
     callbackLog("info", requestId, "create_server_client", {
       status: "started",
     });
-    const supabase = await createServerSupabaseClient(environment);
+    const supabase = await createServerSupabaseClient(environment, {
+      requireCookieWrites: true,
+    });
     callbackLog("info", requestId, "create_server_client", {
       status: "succeeded",
     });
@@ -83,7 +92,7 @@ export async function GET(request: Request) {
     callbackLog("info", requestId, "exchange_code", {
       status: "started",
     });
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       callbackLog("error", requestId, "exchange_code", {
@@ -92,8 +101,9 @@ export async function GET(request: Request) {
         errorCode: error.code,
         errorStatus: error.status,
       });
-      return NextResponse.redirect(
-        new URL("/login?error=oauth_callback_failed", requestUrl.origin),
+      return callbackRedirect(
+        requestUrl,
+        failurePath,
       );
     }
 
@@ -101,12 +111,15 @@ export async function GET(request: Request) {
       status: "succeeded",
     });
     activeStage = "workspace_bootstrap";
-    callbackLog("info", requestId, "workspace_bootstrap", {
-      status: "trigger_completed_or_existing_user",
-      mechanism: "on_auth_user_created database trigger",
+    const bootstrapped = data?.user
+      ? await ensureAuthenticatedUserWorkspace(data.user)
+      : false;
+    callbackLog(bootstrapped ? "info" : "error", requestId, "workspace_bootstrap", {
+      status: bootstrapped ? "succeeded" : "deferred_to_workspace_context",
+      mechanism: "idempotent database function",
     });
 
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    return callbackRedirect(requestUrl, next);
   } catch (error) {
     callbackLog("error", requestId, activeStage, {
       status: "exception",
@@ -116,8 +129,6 @@ export async function GET(request: Request) {
           : undefined,
       ...errorMetadata(error),
     });
-    return NextResponse.redirect(
-      new URL("/login?error=oauth_callback_failed", requestUrl.origin),
-    );
+    return callbackRedirect(requestUrl, failurePath);
   }
 }

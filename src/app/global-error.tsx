@@ -23,14 +23,14 @@ export default function RootGlobalError({
           <section className="max-w-lg text-center">
             <h1 className="text-3xl font-bold">Orliqo is temporarily unavailable</h1>
             <p className="mt-3 text-sm leading-6">
-              The request stopped safely. Retry when you are ready.
+              We couldn’t load Orliqo. Please try again in a moment.
             </p>
             <button
               type="button"
               className="mt-6 rounded-lg bg-black px-4 py-2 text-white"
               onClick={reset}
             >
-              Retry
+              Try again
             </button>
           </section>
         </main>

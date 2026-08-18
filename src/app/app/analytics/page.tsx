@@ -28,7 +28,6 @@ export default async function AnalyticsPage({
     <AnalyticsView
       summary={data.summary}
       rangeDays={rangeDays}
-      demo={context.isDemo}
     />
   );
 }

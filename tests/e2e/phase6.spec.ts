@@ -1,47 +1,13 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-async function demo(page: Page) {
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Use demo workspace" }).click();
-  await expect(page).toHaveURL(/\/app\/dashboard$/);
-}
-
-test("shows authoritative monthly and annual plan pricing", async ({
-  page,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "desktop-chromium",
-    "Desktop pricing workflow",
-  );
-  await page.goto("/pricing");
-  await expect(page.getByRole("heading", { name: "Starter" })).toBeVisible();
-  await expect(page.getByText("$39/month")).toBeVisible();
-  await page.getByRole("link", { name: "Yearly" }).click();
-  await expect(page).toHaveURL(/interval=year/);
-  await expect(page.getByText("$468/year")).toBeVisible();
-  await expect(page.getByText("No annual discount configured")).toBeVisible();
-});
-
-test("billing plan catalog remains responsive and test-only", async ({
-  page,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "mobile-chromium",
-    "Mobile billing workflow",
-  );
-  await demo(page);
-  await page.goto("/app/billing");
-  await expect(
-    page.getByRole("heading", { name: "Billing and plans" }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Dodo Payments test mode", { exact: true }),
-  ).toBeVisible();
-  expect(
-    await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth,
-    ),
-  ).toBe(false);
+test("security headers are present without blocking hydration", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  const response = await page.goto("/login");
+  expect(response?.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(response?.headers()["x-frame-options"]).toBe("DENY");
+  expect(response?.headers()["content-security-policy"]).toContain("strict-dynamic");
+  await page.getByLabel("Work email").fill("person@example.com");
+  await expect(page.getByLabel("Work email")).toHaveValue("person@example.com");
+  expect(errors.filter((message) => /hydration|content security policy/i.test(message))).toEqual([]);
 });

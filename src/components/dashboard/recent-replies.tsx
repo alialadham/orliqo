@@ -60,7 +60,7 @@ export function RecentReplies({
         </Link>
       </div>
       <div className="hidden md:block">
-        <Table aria-label="Recent demo replies">
+        <Table aria-label="Recent replies">
           <TableHeader>
             <TableRow>
               <TableHead>Contact</TableHead>

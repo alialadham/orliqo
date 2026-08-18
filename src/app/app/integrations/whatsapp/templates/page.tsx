@@ -26,7 +26,7 @@ export default async function WhatsAppTemplatesPage() {
           <div>
             <h1 className="text-3xl font-bold">WhatsApp templates</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Official Meta Cloud API fixtures with language, quality,
+              Official Meta Cloud API templates with language, quality,
               variables, approval, and rejection state.
             </p>
           </div>

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { persistInboundMessage } from "@/features/inbox/inbound";
 import { normalizeGraphInbound } from "@/features/inbox/provider-inbound";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { bodyWithinLimit } from "@/lib/security/csrf";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { inngest } from "@/lib/inngest/client";
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       { error: "Webhook payload is too large." },
       { status: 413 },
     );
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const validationToken = new URL(request.url).searchParams.get(
     "validationToken",
   );

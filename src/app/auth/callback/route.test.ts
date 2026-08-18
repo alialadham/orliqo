@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createServerSupabaseClient: vi.fn(),
-  getSupabaseOAuthEnvironment: vi.fn(),
+  getSupabaseAuthEnvironment: vi.fn(),
+  ensureAuthenticatedUserWorkspace: vi.fn(),
+}));
+
+vi.mock("@/features/auth/bootstrap", () => ({
+  ensureAuthenticatedUserWorkspace: mocks.ensureAuthenticatedUserWorkspace,
 }));
 
 vi.mock("@/lib/env", () => {
@@ -10,7 +15,7 @@ vi.mock("@/lib/env", () => {
 
   return {
     EnvironmentValidationError,
-    getSupabaseOAuthEnvironment: mocks.getSupabaseOAuthEnvironment,
+    getSupabaseAuthEnvironment: mocks.getSupabaseAuthEnvironment,
   };
 });
 
@@ -33,27 +38,34 @@ describe("Supabase OAuth callback", () => {
     vi.clearAllMocks();
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    mocks.getSupabaseOAuthEnvironment.mockReturnValue(oauthEnvironment);
+    mocks.getSupabaseAuthEnvironment.mockReturnValue(oauthEnvironment);
+    mocks.ensureAuthenticatedUserWorkspace.mockResolvedValue(true);
   });
 
   it("exchanges the code and redirects to the intended app route", async () => {
-    const exchangeCodeForSession = vi.fn().mockResolvedValue({ error: null });
+    const user = { id: "00000000-0000-4000-8000-000000000001" };
+    const exchangeCodeForSession = vi.fn().mockResolvedValue({ data: { user }, error: null });
     mocks.createServerSupabaseClient.mockResolvedValue({
       auth: { exchangeCodeForSession },
     });
 
     const response = await GET(
-      new Request("https://orliqo.example/auth/callback?code=redacted&next=/app/leads"),
+      new Request(
+        "https://orliqo.example/auth/callback?code=redacted&next=/app/leads",
+      ),
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
       "https://orliqo.example/app/leads",
     );
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(mocks.createServerSupabaseClient).toHaveBeenCalledWith(
       oauthEnvironment,
+      { requireCookieWrites: true },
     );
     expect(exchangeCodeForSession).toHaveBeenCalledWith("redacted");
+    expect(mocks.ensureAuthenticatedUserWorkspace).toHaveBeenCalledWith(user);
   });
 
   it("redirects to login when the code exchange fails", async () => {
@@ -76,7 +88,7 @@ describe("Supabase OAuth callback", () => {
   });
 
   it("redirects to login instead of returning HTTP 500 when OAuth config is missing", async () => {
-    mocks.getSupabaseOAuthEnvironment.mockImplementation(() => {
+    mocks.getSupabaseAuthEnvironment.mockImplementation(() => {
       throw new Error("missing Supabase configuration");
     });
 

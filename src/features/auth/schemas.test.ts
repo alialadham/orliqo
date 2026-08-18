@@ -6,9 +6,6 @@ const validRegistration = {
   fullName: "Ali Haddad",
   email: "ali@example.invalid",
   password: "at-least-ten-characters",
-  companyName: "Orliqo Demo",
-  country: "Jordan",
-  teamSize: "2-5",
   termsAccepted: true,
   marketingConsent: false,
 } as const;
@@ -21,5 +18,10 @@ describe("registration validation", () => {
   it("rejects missing terms and short passwords", () => {
     expect(registrationSchema.safeParse({ ...validRegistration, termsAccepted: false }).success).toBe(false);
     expect(registrationSchema.safeParse({ ...validRegistration, password: "short" }).success).toBe(false);
+  });
+
+  it("rejects a common password without imposing composition rules", () => {
+    expect(registrationSchema.safeParse({ ...validRegistration, password: "passwordpassword" }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...validRegistration, password: "a long passphrase made only of words" }).success).toBe(true);
   });
 });

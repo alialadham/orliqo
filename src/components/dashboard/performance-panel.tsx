@@ -32,11 +32,9 @@ const legend = [
 export function PerformancePanel({
   rows,
   timezone,
-  demo,
 }: {
   rows: readonly AnalyticsRow[];
   timezone: string;
-  demo: boolean;
 }) {
   const [range, setRange] = useState<DashboardRange>("7D");
   return (
@@ -98,8 +96,7 @@ export function PerformancePanel({
       </div>
       <DashboardChart range={range} rows={rows} />
       <p className="text-muted-foreground mt-1 text-[11px]">
-        Times use {timezone}.{" "}
-        {demo ? "Synthetic demo records." : "Aggregated workspace records."}
+        Times use {timezone}. Aggregated workspace records.
       </p>
       <p className="sr-only" aria-live="polite">
         Showing {range} outreach performance across sent, delivered, opened,

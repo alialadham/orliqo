@@ -10,7 +10,7 @@ import {
   mapDodoSubscriptionStatus,
   verifyDodoWebhook,
 } from "@/features/billing/dodo-webhooks";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { bodyWithinLimit } from "@/lib/security/csrf";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       { error: "Webhook payload is too large." },
       { status: 413 },
     );
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const configuration = billingConfiguration(environment);
   if (!configuration || configuration.mode !== "test")
     return NextResponse.json(

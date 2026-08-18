@@ -90,7 +90,7 @@ export function AuthShell({ variant, children }: { variant: "login" | "register"
         <BrandLockup />
         <div className={cn("flex flex-1 flex-col", isLogin ? "justify-center py-8" : "justify-start pt-20")}>
           <h1 className={cn("max-w-[590px] text-balance font-heading font-bold tracking-[-0.035em]", isLogin ? "text-[38px] leading-[1.08] lg:text-[42px]" : "max-w-[500px] text-[42px] leading-[1.12]")}>
-            {isLogin ? "Find the right businesses. Reach them personally. Convert more clients." : "Build a safer outreach engine."}
+            {isLogin ? "Find the right businesses. Reach them personally. Convert more clients." : "Start meaningful business conversations."}
           </h1>
           <p className="mt-3 max-w-[570px] text-[17px] leading-7 text-white/68">
             {isLogin

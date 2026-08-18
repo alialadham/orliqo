@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getServerEnvironment } from "@/lib/env";
+import { getSupabaseAdminEnvironment } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type Bucket = { count: number; resetAt: number };
@@ -57,20 +57,18 @@ export async function checkRateLimit(
   const local = checkLocalRateLimit(key, limit, windowMs);
   if (!local.allowed) return local;
 
-  const environment = getServerEnvironment();
-  if (environment.demoMode || environment.NODE_ENV !== "production")
-    return local;
+  if (process.env.NODE_ENV !== "production") return local;
 
   try {
-    const client = createAdminSupabaseClient() as unknown as SupabaseClient;
-    const { data, error } = await client.schema("private").rpc(
-      "consume_rate_limit",
-      {
-        bucket_key: key,
-        bucket_limit: limit,
-        window_seconds: Math.max(1, Math.ceil(windowMs / 1000)),
-      },
-    );
+    const environment = getSupabaseAdminEnvironment();
+    const client = createAdminSupabaseClient(
+      environment,
+    ) as unknown as SupabaseClient;
+    const { data, error } = await client.rpc("consume_rate_limit_service", {
+      bucket_key: key,
+      bucket_limit: limit,
+      window_seconds: Math.max(1, Math.ceil(windowMs / 1000)),
+    });
     const result = Array.isArray(data) ? data[0] : data;
     if (
       error ||

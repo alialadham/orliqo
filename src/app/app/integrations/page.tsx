@@ -52,7 +52,9 @@ export default async function IntegrationsPage() {
   const calendar = integrations.find(
     (item) => item.provider === "google_calendar",
   );
-  const demoOnly = integrations.every((item) => item.health.mode === "demo");
+  const hasLiveProvider = integrations.some(
+    (item) => item.health.mode === "live",
+  );
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-7">
@@ -60,16 +62,12 @@ export default async function IntegrationsPage() {
         <div>
           <Badge variant="outline" className="mb-3">
             <ShieldCheck />
-            {demoOnly ? "Deterministic sandbox" : "Server-validated providers"}
+            Server-validated providers
           </Badge>
           <h1 className="text-3xl font-bold">Integrations</h1>
           <p className="text-muted-foreground mt-1 max-w-3xl text-sm">
-            Validate provider capabilities, health, limits, and official-channel
-            safety{" "}
-            {demoOnly
-              ? "without live credentials or external delivery"
-              : "before provider operations"}
-            .
+            Connect approved accounts and review health, sending limits, and
+            official-channel safety before delivery.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -276,7 +274,12 @@ export default async function IntegrationsPage() {
                 provider: item.provider,
                 label: `${item.displayName} · ${item.accountLabel}`,
               }))}
-            noSend={email.every((item) => item.health.mode === "demo")}
+            noSend={!email.some(
+              (item) =>
+                item.health.mode === "live" &&
+                item.status === "connected" &&
+                !item.paused,
+            )}
           />
         </CardContent>
       </Card>
@@ -285,15 +288,15 @@ export default async function IntegrationsPage() {
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />
         <p>
           <strong>
-            {demoOnly
-              ? "Live delivery remains locked."
-              : "Provider safety checks remain active."}
+            {hasLiveProvider
+              ? "Provider safety checks remain active."
+              : "Live delivery remains locked."}
           </strong>{" "}
           A provider becomes live only after server-side credential validation,
           successful readiness checks, and explicit environment configuration.
-          {demoOnly
-            ? " This workspace has no live credentials."
-            : " Connected status reflects a completed server check."}
+          {hasLiveProvider
+            ? " Connected status reflects a completed server check."
+            : " Connect and validate an approved provider before sending."}
         </p>
       </div>
     </div>

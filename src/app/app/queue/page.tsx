@@ -4,13 +4,9 @@ import {
 } from "@/components/campaigns/campaign-controls";
 import { Badge } from "@/components/ui/badge";
 import { getCampaigns, getCampaignDetail } from "@/features/campaigns/data";
-import { getWorkspaceContext } from "@/features/workspaces/data";
 import { StatePanel } from "@/components/feedback/state-panel";
 export default async function QueuePage() {
-  const [campaigns, context] = await Promise.all([
-    getCampaigns(),
-    getWorkspaceContext(),
-  ]);
+  const campaigns = await getCampaigns();
   const details = await Promise.all(
     campaigns.map((c) => getCampaignDetail(c.id)),
   );
@@ -55,7 +51,6 @@ export default async function QueuePage() {
             </Badge>
             <MessageActions
               id={m.id}
-              demo={Boolean(context?.isDemo)}
               canApprove={m.approvalStatus !== "approved"}
               canSend={
                 ["email", "whatsapp"].includes(m.channel) &&

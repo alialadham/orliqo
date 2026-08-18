@@ -15,8 +15,9 @@ export default async function OnboardingPage() {
 
   const state = await getOnboardingState();
   if (!state) redirect("/login");
-  const context = user.demoKind === "onboarding" ? null : await getWorkspaceContext();
-  const canEdit = user.demoKind === "onboarding" || Boolean(context && hasPermission(context.activeWorkspace.role, "settings:manage"));
+  const context = await getWorkspaceContext();
+  if (!context) redirect("/login?error=session_expired");
+  const canEdit = hasPermission(context.activeWorkspace.role, "settings:manage");
 
   return (
     <div className="min-h-dvh bg-background">

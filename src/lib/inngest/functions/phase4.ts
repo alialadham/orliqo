@@ -12,7 +12,7 @@ import {
 } from "@/features/integrations/provider-runtime";
 import { persistInboundMessage } from "@/features/inbox/inbound";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { inngest } from "../client";
 
 const jobData = z.object({
@@ -80,7 +80,7 @@ async function onFailure({
   if (
     !parsed.success ||
     parsed.data.demo ||
-    !getServerEnvironment().SUPABASE_SERVICE_ROLE_KEY
+    !getRuntimeEnvironment().SUPABASE_SERVICE_ROLE_KEY
   )
     return;
   const client = admin();
@@ -201,7 +201,7 @@ export const sendEmailMessageFunction = inngest.createFunction(
         status: "simulated_no_send",
         idempotencyKey: data.idempotencyKey,
       };
-    const environment = getServerEnvironment();
+    const environment = getRuntimeEnvironment();
     if (
       environment.LIVE_DELIVERY_ENABLED !== "true" ||
       environment.EMAIL_DELIVERY_MODE !== "live"
@@ -366,7 +366,7 @@ export const sendWhatsAppMessageFunction = inngest.createFunction(
         status: "simulated_no_send",
         idempotencyKey: data.idempotencyKey,
       };
-    const environment = getServerEnvironment();
+    const environment = getRuntimeEnvironment();
     if (
       environment.LIVE_DELIVERY_ENABLED !== "true" ||
       environment.WHATSAPP_DELIVERY_MODE !== "live"

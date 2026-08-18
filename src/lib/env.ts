@@ -10,20 +10,16 @@ const optionalPort = z.preprocess(
   z.coerce.number().int().min(1).max(65_535).optional(),
 );
 
-const supabaseOAuthEnvironmentSchema = z
+const supabaseEnvironmentSchema = z
   .object({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    APP_URL: optionalUrl,
-    NEXT_PUBLIC_APP_URL: optionalUrl,
     NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optionalSecret,
   })
   .superRefine((environment, context) => {
     const requiredKeys = [
-      "APP_URL",
-      "NEXT_PUBLIC_APP_URL",
       "NEXT_PUBLIC_SUPABASE_URL",
       "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
     ] as const;
@@ -32,30 +28,14 @@ const supabaseOAuthEnvironmentSchema = z
       if (!environment[key]) {
         context.addIssue({
           code: "custom",
-          message: `${key} is required for Supabase OAuth.`,
+          message: `${key} is required for Supabase authentication.`,
           path: [key],
         });
       }
     }
 
-    if (
-      environment.APP_URL &&
-      environment.NEXT_PUBLIC_APP_URL &&
-      environment.APP_URL !== environment.NEXT_PUBLIC_APP_URL
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "NEXT_PUBLIC_APP_URL must match APP_URL.",
-        path: ["NEXT_PUBLIC_APP_URL"],
-      });
-    }
-
     if (environment.NODE_ENV === "production") {
-      for (const key of [
-        "APP_URL",
-        "NEXT_PUBLIC_APP_URL",
-        "NEXT_PUBLIC_SUPABASE_URL",
-      ] as const) {
+      for (const key of ["NEXT_PUBLIC_SUPABASE_URL"] as const) {
         const value = environment[key];
         if (value && new URL(value).protocol !== "https:") {
           context.addIssue({
@@ -67,6 +47,62 @@ const supabaseOAuthEnvironmentSchema = z
       }
     }
   });
+
+const applicationEnvironmentSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    APP_URL: optionalUrl,
+    NEXT_PUBLIC_APP_URL: optionalUrl,
+  })
+  .superRefine((environment, context) => {
+    for (const key of ["APP_URL", "NEXT_PUBLIC_APP_URL"] as const) {
+      if (!environment[key]) {
+        context.addIssue({
+          code: "custom",
+          message: `${key} is required for redirects and origin checks.`,
+          path: [key],
+        });
+      }
+    }
+    if (
+      environment.APP_URL &&
+      environment.NEXT_PUBLIC_APP_URL &&
+      environment.APP_URL !== environment.NEXT_PUBLIC_APP_URL
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "NEXT_PUBLIC_APP_URL must match APP_URL.",
+        path: ["NEXT_PUBLIC_APP_URL"],
+      });
+    }
+    if (environment.NODE_ENV === "production") {
+      for (const key of ["APP_URL", "NEXT_PUBLIC_APP_URL"] as const) {
+        const value = environment[key];
+        if (value && new URL(value).protocol !== "https:") {
+          context.addIssue({
+            code: "custom",
+            message: `${key} must use HTTPS in production.`,
+            path: [key],
+          });
+        }
+      }
+    }
+  });
+
+const supabaseAdminEnvironmentSchema = supabaseEnvironmentSchema.and(
+  z.object({ SUPABASE_SERVICE_ROLE_KEY: optionalSecret }),
+).superRefine((environment, context) => {
+  if (!environment.SUPABASE_SERVICE_ROLE_KEY) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "SUPABASE_SERVICE_ROLE_KEY is required for server-side privileged operations.",
+      path: ["SUPABASE_SERVICE_ROLE_KEY"],
+    });
+  }
+});
 
 const billingProductKeys = [
   "DODO_TEST_STARTER_MONTHLY_PRODUCT_ID",
@@ -83,14 +119,14 @@ const billingProductKeys = [
   "DODO_LIVE_AGENCY_YEARLY_PRODUCT_ID",
 ] as const;
 
-const serverEnvironmentSchema = z
+const baseServerEnvironmentSchema = z
   .object({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
     APP_URL: optionalUrl,
     NEXT_PUBLIC_APP_URL: optionalUrl,
-    DEMO_MODE: z.enum(["true", "false"]).default("true"),
+    DEMO_MODE: z.enum(["true", "false"]).default("false"),
     DEMO_SESSION_SECRET: optionalSecret,
     NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optionalSecret,
@@ -190,8 +226,9 @@ const serverEnvironmentSchema = z
     RESEARCH_PROVIDER: optionalSecret,
     RESEARCH_PROVIDER_API_KEY: optionalSecret,
     RESEARCH_PROVIDER_BASE_URL: optionalUrl,
-  })
-  .superRefine((environment, context) => {
+  });
+
+const serverEnvironmentSchema = baseServerEnvironmentSchema.superRefine((environment, context) => {
     const demoMode = environment.DEMO_MODE === "true";
     const production = environment.NODE_ENV === "production";
     const hasSupabase = Boolean(
@@ -220,6 +257,14 @@ const serverEnvironmentSchema = z
         requireValues(keys, `when ${label} is configured`);
       }
     };
+
+    if (production && demoMode) {
+      context.addIssue({
+        code: "custom",
+        message: "DEMO_MODE cannot be enabled in production.",
+        path: ["DEMO_MODE"],
+      });
+    }
 
     if (!demoMode && !hasSupabase) {
       context.addIssue({
@@ -574,10 +619,29 @@ export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema> & {
   supabaseConfigured: boolean;
 };
 
-export type SupabaseOAuthEnvironment = z.infer<
-  typeof supabaseOAuthEnvironmentSchema
-> & {
+export type RuntimeEnvironment = z.infer<typeof baseServerEnvironmentSchema> & {
+  demoMode: boolean;
+  supabaseConfigured: boolean;
+};
+
+export type SupabaseEnvironment = {
+  NODE_ENV: "development" | "test" | "production";
+  NEXT_PUBLIC_SUPABASE_URL: string;
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: string;
   supabaseConfigured: true;
+};
+
+export type ApplicationEnvironment = {
+  NODE_ENV: "development" | "test" | "production";
+  APP_URL: string;
+  NEXT_PUBLIC_APP_URL: string;
+};
+
+export type SupabaseAuthEnvironment = SupabaseEnvironment &
+  ApplicationEnvironment;
+
+export type SupabaseAdminEnvironment = SupabaseEnvironment & {
+  SUPABASE_SERVICE_ROLE_KEY: string;
 };
 
 let cachedEnvironment: ServerEnvironment | undefined;
@@ -612,27 +676,100 @@ export function parseServerEnvironment(
   };
 }
 
+export function parseRuntimeEnvironment(source: NodeJS.ProcessEnv): RuntimeEnvironment {
+  const parsed = baseServerEnvironmentSchema.safeParse(source);
+  if (!parsed.success)
+    throw new EnvironmentValidationError(parsed.error.issues);
+  if (parsed.data.NODE_ENV === "production" && parsed.data.DEMO_MODE === "true") {
+    throw new EnvironmentValidationError([
+      { code: "custom", message: "DEMO_MODE cannot be enabled in production.", path: ["DEMO_MODE"] },
+    ]);
+  }
+  return {
+    ...parsed.data,
+    demoMode: parsed.data.DEMO_MODE === "true",
+    supabaseConfigured: Boolean(parsed.data.NEXT_PUBLIC_SUPABASE_URL && parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+  };
+}
+
 /**
- * Validates only the configuration needed by the Supabase OAuth callback.
+ * Validates only the configuration needed by Supabase authentication.
  * Full production validation remains at feature boundaries via getServerEnvironment.
  */
-export function parseSupabaseOAuthEnvironment(
+export function parseSupabaseEnvironment(
   source: NodeJS.ProcessEnv,
-): SupabaseOAuthEnvironment {
-  const parsed = supabaseOAuthEnvironmentSchema.safeParse(source);
+): SupabaseEnvironment {
+  const parsed = supabaseEnvironmentSchema.safeParse(source);
   if (!parsed.success)
     throw new EnvironmentValidationError(parsed.error.issues);
 
   return {
     ...parsed.data,
+    NEXT_PUBLIC_SUPABASE_URL: parsed.data.NEXT_PUBLIC_SUPABASE_URL!,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     supabaseConfigured: true,
   };
 }
 
-export function getSupabaseOAuthEnvironment(): SupabaseOAuthEnvironment {
-  // Do not reuse the full-environment cache: this route must not inherit
-  // unrelated billing, integration, or background-job validation failures.
-  return parseSupabaseOAuthEnvironment(process.env);
+export function parseApplicationEnvironment(
+  source: NodeJS.ProcessEnv,
+): ApplicationEnvironment {
+  const parsed = applicationEnvironmentSchema.safeParse(source);
+  if (!parsed.success)
+    throw new EnvironmentValidationError(parsed.error.issues);
+  return {
+    ...parsed.data,
+    APP_URL: parsed.data.APP_URL!,
+    NEXT_PUBLIC_APP_URL: parsed.data.NEXT_PUBLIC_APP_URL!,
+  };
+}
+
+export function parseSupabaseAuthEnvironment(
+  source: NodeJS.ProcessEnv,
+): SupabaseAuthEnvironment {
+  return {
+    ...parseSupabaseEnvironment(source),
+    ...parseApplicationEnvironment(source),
+  };
+}
+
+export function parseSupabaseAdminEnvironment(
+  source: NodeJS.ProcessEnv,
+): SupabaseAdminEnvironment {
+  const parsed = supabaseAdminEnvironmentSchema.safeParse(source);
+  if (!parsed.success)
+    throw new EnvironmentValidationError(parsed.error.issues);
+  return {
+    ...parsed.data,
+    NEXT_PUBLIC_SUPABASE_URL: parsed.data.NEXT_PUBLIC_SUPABASE_URL!,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    SUPABASE_SERVICE_ROLE_KEY: parsed.data.SUPABASE_SERVICE_ROLE_KEY!,
+    supabaseConfigured: true,
+  };
+}
+
+export function getSupabaseEnvironment(): SupabaseEnvironment {
+  return parseSupabaseEnvironment(process.env);
+}
+
+export function getApplicationEnvironment(): ApplicationEnvironment {
+  return parseApplicationEnvironment(process.env);
+}
+
+export function getSupabaseAuthEnvironment(): SupabaseAuthEnvironment {
+  // OAuth needs both Supabase and exact application redirect configuration.
+  return parseSupabaseAuthEnvironment(process.env);
+}
+
+export function getSupabaseAdminEnvironment(): SupabaseAdminEnvironment {
+  return parseSupabaseAdminEnvironment(process.env);
+}
+
+/** Parses shared values without validating unrelated providers. */
+export function getRuntimeEnvironment(): RuntimeEnvironment {
+  return parseRuntimeEnvironment(process.env);
 }
 
 export function getServerEnvironment(): ServerEnvironment {
@@ -641,8 +778,4 @@ export function getServerEnvironment(): ServerEnvironment {
   cachedEnvironment = parseServerEnvironment(process.env);
 
   return cachedEnvironment;
-}
-
-export function validateRuntimeEnvironment(): void {
-  getServerEnvironment();
 }

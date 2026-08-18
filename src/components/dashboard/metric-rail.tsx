@@ -27,7 +27,7 @@ const definitions = [
     key: "sent",
     label: "Sent",
     icon: Send,
-    description: "Outbound messages accepted by a provider or demo simulator.",
+    description: "Outbound messages accepted by a connected provider.",
   },
   {
     key: "replied",

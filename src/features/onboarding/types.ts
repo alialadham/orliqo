@@ -63,6 +63,7 @@ export type IcpInput = {
   excludedCompanies: string[];
   minimumScore: number;
   requiredContactMethods: string[];
+  targetRoles: string[];
   audienceBreadth: "narrow" | "balanced" | "broad";
   isDefault: boolean;
   archived: boolean;

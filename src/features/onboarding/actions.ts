@@ -111,7 +111,7 @@ export async function saveIcpAction(input: IcpInput): Promise<OnboardingActionRe
       business_age_max: parsed.data.businessAgeMax, website_statuses: parsed.data.websiteStatuses,
       social_activity_min: parsed.data.socialActivityMin, review_count_min: parsed.data.reviewCountMin, keywords: parsed.data.keywords,
       excluded_industries: parsed.data.excludedIndustries, excluded_companies: parsed.data.excludedCompanies,
-      contact_requirements: { methods: parsed.data.requiredContactMethods }, minimum_score: parsed.data.minimumScore,
+      contact_requirements: { methods: parsed.data.requiredContactMethods, roles: parsed.data.targetRoles }, minimum_score: parsed.data.minimumScore,
       audience_breadth: parsed.data.audienceBreadth, is_default: parsed.data.isDefault, active: !parsed.data.archived,
       archived_at: parsed.data.archived ? new Date().toISOString() : null,
     }, { onConflict: "id" });
@@ -177,7 +177,7 @@ export async function completeOnboardingAction(): Promise<void> {
   const context = await mutationContext();
   if (!context) redirect("/onboarding?error=permission");
   const state = await getOnboardingState();
-  if (!state || !businessSchema.safeParse(state.business).success || !offerSchema.safeParse(state.offer).success || !goalsSchema.safeParse(state.goals).success || !state.icps.some((icp) => !icp.archived && icpSchema.safeParse(icp).success) || !state.channels.some((channel) => channel.enabled)) redirect("/onboarding?error=incomplete");
+  if (!state || !businessSchema.safeParse(state.business).success || !state.icps.some((icp) => !icp.archived && icpSchema.safeParse(icp).success)) redirect("/onboarding?error=incomplete");
   if (context.demo) {
     const state = ensureDemoOnboarding(context.workspaceId); state.completed = true; state.currentStep = 6; state.updatedAt = new Date().toISOString();
     await createDemoWorkspaceSession();

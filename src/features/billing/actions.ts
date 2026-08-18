@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { readDemoSession } from "@/features/auth/demo-session";
 import { requirePermission } from "@/features/permissions/server";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { billingConfiguration } from "./config";
 import { createDodoAdapter } from "./dodo-adapter";
@@ -19,7 +19,7 @@ const checkoutSchema = z.object({
 async function billingContext() {
   const context = await requirePermission("billing:manage");
   if (!context) return null;
-  const environment = getServerEnvironment();
+  const environment = getRuntimeEnvironment();
   const configuration = billingConfiguration(environment);
   if (!configuration || configuration.mode !== "test") return null;
   return {

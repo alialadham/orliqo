@@ -6,10 +6,10 @@ import { LoginForm } from "@/components/auth/login-form";
 export const metadata: Metadata = { title: "Sign in" };
 
 const errorMessages: Record<string, string> = {
-  provider_not_configured: "Provider sign-in is not configured. Use the demo workspace or email sign-in after Supabase is connected.",
-  oauth_start_failed: "Provider sign-in could not start. Try again or use email sign-in.",
-  oauth_callback_failed: "Provider sign-in could not be verified. Start the connection again.",
-  demo_disabled: "Demo mode is disabled in this environment.",
+  provider_not_configured: "Google sign-in is temporarily unavailable. Use email sign-in or try again later.",
+  oauth_start_failed: "We couldn't start Google sign-in. Please try again.",
+  oauth_callback_failed: "We couldn't complete Google sign-in. Please try again.",
+  confirmation_failed: "This confirmation link is invalid or expired. Request a new one.",
   session_expired: "Your session expired. Sign in again to continue.",
 };
 

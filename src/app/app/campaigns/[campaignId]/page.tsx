@@ -7,7 +7,6 @@ import {
 } from "@/components/campaigns/campaign-controls";
 import { Badge } from "@/components/ui/badge";
 import { getCampaignDetail } from "@/features/campaigns/data";
-import { getWorkspaceContext } from "@/features/workspaces/data";
 
 export default async function CampaignPage({
   params,
@@ -15,10 +14,7 @@ export default async function CampaignPage({
   params: Promise<{ campaignId: string }>;
 }) {
   const { campaignId } = await params;
-  const [data, context] = await Promise.all([
-    getCampaignDetail(campaignId),
-    getWorkspaceContext(),
-  ]);
+  const data = await getCampaignDetail(campaignId);
   if (!data) notFound();
   const navigation = [
     ["Overview", "#overview"],
@@ -123,7 +119,6 @@ export default async function CampaignPage({
                 id={message.id}
                 canApprove={message.approvalStatus !== "approved"}
                 canSend={message.approvalStatus === "approved"}
-                demo={Boolean(context?.isDemo)}
               />
             </div>
           </article>

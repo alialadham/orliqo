@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { inngest } from "../client";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { getServerEnvironment } from "@/lib/env";
+import { getRuntimeEnvironment } from "@/lib/env";
 
 const jobData = z.object({
   workspaceId: z.string().uuid(),
@@ -42,7 +42,7 @@ export const phase3Functions = definitions.map(([id, name]) =>
         if (
           !parsed.success ||
           parsed.data.demo ||
-          !getServerEnvironment().SUPABASE_SERVICE_ROLE_KEY
+          !getRuntimeEnvironment().SUPABASE_SERVICE_ROLE_KEY
         )
           return;
         const admin = createAdminSupabaseClient();

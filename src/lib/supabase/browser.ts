@@ -9,7 +9,7 @@ export function createBrowserSupabaseClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!url || !key) {
-    throw new Error("Supabase is not configured. Use the labeled demo workspace.");
+    throw new Error("Supabase is not configured for this environment.");
   }
 
   return createBrowserClient<Database>(url, key);

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   approveMessageAction,
   controlCampaignAction,
-  dispatchDemoMessageAction,
+  dispatchMessageAction,
   generateCampaignMessagesAction,
   rewriteMessageAction,
 } from "@/features/campaigns/actions";
@@ -92,12 +92,10 @@ export function MessageActions({
   id,
   canApprove,
   canSend,
-  demo,
 }: {
   id: string;
   canApprove: boolean;
   canSend: boolean;
-  demo: boolean;
 }) {
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
@@ -149,9 +147,9 @@ export function MessageActions({
           <Button
             size="sm"
             disabled={pending}
-            onClick={() => run(() => dispatchDemoMessageAction(id))}
+            onClick={() => run(() => dispatchMessageAction(id))}
           >
-            {demo ? "Simulate send" : "Send now"}
+            Send now
           </Button>
         ) : null}
       </div>
